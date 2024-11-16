@@ -274,7 +274,7 @@ static void sstvenc_cw_handle_state_mark(struct sstvenc_cw_mod* const cw) {
 		break;
 	case SSTVENC_PS_PHASE_DONE:
 		/* Dah/Dit finished, space starts here */
-		cw->output = 0.0;
+		cw->output	  = 0.0;
 		cw->osc.amplitude = 0.0;
 		if (cw->symbol->value[cw->pos] == ' ') {
 			/* This was actually a space, don't add more! */
