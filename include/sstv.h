@@ -275,7 +275,15 @@ struct sstvenc_encoder {
 	/*! Sample rate in Hz */
 	uint32_t			    sample_rate;
 
+	/*! Samples remaining for current tone */
+	uint16_t			    sample_rem;
+
 	union sstvenc_encoder_phase_data {
+		struct sstvenc_encoder_phase_preamble_data {
+			/*! The current step being performed */
+			uint8_t step;
+		} preamble;
+
 		struct sstvenc_encoder_phase_vis_data {
 			/*! The current bit being sent */
 			uint8_t bit;
@@ -330,6 +338,11 @@ struct sstvenc_encoder {
 			uint8_t bit;
 		} fsk;
 	} vars;
+
+	/*!
+	 * Tone generator state.
+	 */
+	uint8_t tone_state;
 
 	/*!
 	 * The transmission phase we are in.
