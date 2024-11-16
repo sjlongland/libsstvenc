@@ -347,6 +347,24 @@ void sstvenc_encoder_init(struct sstvenc_encoder* const	      enc,
 			  uint32_t sample_rate);
 
 /*!
+ * Fetch the offset into the framebuffer for the given pixel.
+ */
+static inline uint32_t
+sstvenc_get_pixel_posn(const struct sstvenc_encoder* const enc, uint16_t x,
+		       uint16_t y) {
+	uint32_t idx  = y * enc->mode->height;
+	idx	     += x;
+
+	if ((enc->mode->colour_space_order & SSTVENC_CSO_MASK_MODE)
+	    != SSTVENC_CSO_MODE_MONO) {
+		/* These are 3-colour tuples */
+		idx *= 3;
+	}
+
+	return idx;
+}
+
+/*!
  * Compute the next audio sample from the SSTV encoder.
  */
 void sstvenc_encoder_compute(struct sstvenc_encoder* const enc);

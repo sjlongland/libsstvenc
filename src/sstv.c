@@ -438,10 +438,14 @@ sstvenc_encoder_do_scan_seq(struct sstvenc_encoder* const	enc,
 static void
 sstvenc_encoder_start_scan_channel(struct sstvenc_encoder* const enc,
 				   uint8_t			 ch) {
-	sstvenc_encoder_start_tone(enc, enc->amplitude,
-				   sstvenc_level_freq(enc->framebuffer[]),
-				   enc->mode->scanline[ch] / enc->mode->width,
-				   SSTVENC_ENCODER_START_TONE_CONTINUE);
+	sstvenc_encoder_start_tone(
+	    enc, enc->amplitude,
+	    sstvenc_level_freq(
+		enc->framebuffer[sstvenc_get_pixel_posn(enc, enc->vars.scan.x,
+							enc->vars.scan.y)
+				 + ch]),
+	    enc->mode->scanline[ch] / enc->mode->width,
+	    SSTVENC_ENCODER_START_TONE_CONTINUE);
 }
 
 static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
