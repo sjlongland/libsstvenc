@@ -62,20 +62,32 @@ struct sstvenc_pulseshape {
 };
 
 /*!
+ * Reset the pulse shape state machine with a new hold time given in samples,
+ * but otherwise identical settings.
+ */
+static inline void
+sstvenc_ps_reset_samples(struct sstvenc_pulseshape* const ps,
+			 uint32_t			  hold_time) {
+	ps->phase      = SSTVENC_PS_PHASE_INIT;
+	ps->hold_sz    = hold_time;
+	ps->sample_idx = 0;
+}
+
+/*!
  * Reset the pulse shape state machine with a new hold time, but otherwise
  * identical settings.
  */
 static inline void sstvenc_ps_reset(struct sstvenc_pulseshape* const ps,
 				    double hold_time) {
-	ps->phase = SSTVENC_PS_PHASE_INIT;
 	if (hold_time == INFINITY) {
-		ps->hold_sz = SSTVENC_PS_HOLD_TIME_INF;
+		sstvenc_ps_reset_samples(ps, SSTVENC_PS_HOLD_TIME_INF);
 	} else {
 		double samples = (uint64_t)(hold_time * ps->sample_rate);
 		if (samples > UINT32_MAX) {
-			ps->hold_sz = SSTVENC_PS_HOLD_TIME_INF;
+			sstvenc_ps_reset_samples(ps,
+						 SSTVENC_PS_HOLD_TIME_INF);
 		} else {
-			ps->hold_sz = samples;
+			sstvenc_ps_reset_samples(ps, samples);
 		}
 	}
 }
