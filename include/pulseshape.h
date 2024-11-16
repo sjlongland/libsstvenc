@@ -191,7 +191,7 @@ static inline void sstvenc_ps_compute(struct sstvenc_pulseshape* const ps) {
 				ps->output = ps->amplitude;
 			}
 		}
-		if (ps->sample_idx > ps->fall_sz) {
+		if (ps->sample_idx >= ps->fall_sz) {
 			/* Next phase */
 			sstvenc_ps_advance(ps);
 		}
