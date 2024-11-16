@@ -16,6 +16,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <assert.h>
 #include <math.h>
 #include <stdint.h>
 
@@ -62,6 +63,9 @@ struct sstvenc_oscillator {
 static inline void sstvenc_osc_init(struct sstvenc_oscillator* const osc,
 				    double amplitude, double frequency,
 				    double offset, uint32_t sample_rate) {
+	assert(frequency >= 0);
+	assert(frequency < (sample_rate / 2));
+
 	osc->amplitude	 = amplitude;
 	osc->frequency	 = frequency;
 	osc->offset	 = offset;
