@@ -18,10 +18,11 @@
 /*
  * Pulse shape phases
  */
-#define SSTVENC_PS_PHASE_RISE	 (0)
-#define SSTVENC_PS_PHASE_HOLD	 (1)
-#define SSTVENC_PS_PHASE_FALL	 (2)
-#define SSTVENC_PS_PHASE_DONE	 (3)
+#define SSTVENC_PS_PHASE_INIT	 (0)
+#define SSTVENC_PS_PHASE_RISE	 (1)
+#define SSTVENC_PS_PHASE_HOLD	 (2)
+#define SSTVENC_PS_PHASE_FALL	 (3)
+#define SSTVENC_PS_PHASE_DONE	 (4)
 
 /*!
  * Hold time = infinite
@@ -82,7 +83,7 @@ static inline void sstvenc_ps_init(struct sstvenc_pulseshape* const ps,
 	ps->amplitude	= amplitude;
 	ps->sample_rate = sample_rate;
 	ps->output	= 0.0;
-	ps->phase	= SSTVENC_PS_PHASE_RISE;
+	ps->phase	= SSTVENC_PS_PHASE_INIT;
 
 	samples		= (uint64_t)(rise_time * sample_rate);
 	if (samples > UINT16_MAX) {
@@ -129,6 +130,9 @@ static inline void sstvenc_ps_compute(struct sstvenc_pulseshape* const ps) {
 	ps->sample_idx++;
 
 	switch (ps->phase) {
+	case SSTVENC_PS_PHASE_INIT:
+		ps->phase++;
+		/* Fall-thru */
 	case SSTVENC_PS_PHASE_RISE:
 		if (ps->rise_sz) {
 			/* Compute the raised sine amplitude */
