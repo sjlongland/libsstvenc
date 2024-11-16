@@ -49,7 +49,8 @@ struct sstvenc_oscillator {
 	/*!
 	 * Fixed-point phase of the sinusoid oscillator.  Do not manipulate
 	 * directly, use @ref sstvenc_osc_init or @ref sstvenc_osc_compute to
-	 * update.
+	 * update.  If just re-starting a sine with identical settings, you
+	 * *may* set this to 0.
 	 */
 	uint32_t phase;
 };
