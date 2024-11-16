@@ -151,7 +151,8 @@ const struct sstvenc_mode* sstvenc_get_mode_by_name(const char* name);
 /*!
  * Return the size of the framebuffer needed for this mode in bytes.
  */
-static inline size_t sstvenc_mode_get_fb_sz(struct sstvenc_mode* const mode) {
+static inline size_t
+sstvenc_mode_get_fb_sz(const struct sstvenc_mode* const mode) {
 	size_t sz = mode->width * mode->height * sizeof(double);
 
 	if ((mode->colour_space_order & SSTVENC_CSO_MASK_MODE)
