@@ -77,6 +77,58 @@ const static struct sstvenc_encoder_pulse sstvenc_sstv_martin_sep[] = {
     {.frequency = 0, .duration_ns = 0},
 };
 
+/* SSTV mode specifications -- Pasokon modes */
+
+#define SSTVENC_PASOKON_P3_TIMEUNIT (1000000000.0 / 4800.0)
+#define SSTVENC_PASOKON_P5_TIMEUNIT (1000000000.0 / 3200.0)
+#define SSTVENC_PASOKON_P7_TIMEUNIT (1000000000.0 / 2400.0)
+
+#define SSTVENC_PASOKON_SYNC(unit)  (25 * unit)
+#define SSTVENC_PASOKON_GAP(unit)   (5 * unit)
+#define SSTVENC_PASOKON_SCAN(unit)  (640 * unit)
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_pasokon_p3_fp[] = {
+    {.frequency	  = SSTVENC_FREQ_SYNC,
+     .duration_ns = SSTVENC_PASOKON_SYNC(SSTVENC_PASOKON_P3_TIMEUNIT)},
+    {.frequency	  = SSTVENC_FREQ_BLACK,
+     .duration_ns = SSTVENC_PASOKON_GAP(SSTVENC_PASOKON_P3_TIMEUNIT)},
+    {.frequency = 0, .duration_ns = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_pasokon_p3_sep[] = {
+    {.frequency	  = SSTVENC_FREQ_BLACK,
+     .duration_ns = SSTVENC_PASOKON_GAP(SSTVENC_PASOKON_P3_TIMEUNIT)},
+    {.frequency = 0, .duration_ns = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_pasokon_p5_fp[] = {
+    {.frequency	  = SSTVENC_FREQ_SYNC,
+     .duration_ns = SSTVENC_PASOKON_SYNC(SSTVENC_PASOKON_P5_TIMEUNIT)},
+    {.frequency	  = SSTVENC_FREQ_BLACK,
+     .duration_ns = SSTVENC_PASOKON_GAP(SSTVENC_PASOKON_P5_TIMEUNIT)},
+    {.frequency = 0, .duration_ns = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_pasokon_p5_sep[] = {
+    {.frequency	  = SSTVENC_FREQ_BLACK,
+     .duration_ns = SSTVENC_PASOKON_GAP(SSTVENC_PASOKON_P5_TIMEUNIT)},
+    {.frequency = 0, .duration_ns = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_pasokon_p7_fp[] = {
+    {.frequency	  = SSTVENC_FREQ_SYNC,
+     .duration_ns = SSTVENC_PASOKON_SYNC(SSTVENC_PASOKON_P7_TIMEUNIT)},
+    {.frequency	  = SSTVENC_FREQ_BLACK,
+     .duration_ns = SSTVENC_PASOKON_GAP(SSTVENC_PASOKON_P7_TIMEUNIT)},
+    {.frequency = 0, .duration_ns = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_pasokon_p7_sep[] = {
+    {.frequency	  = SSTVENC_FREQ_BLACK,
+     .duration_ns = SSTVENC_PASOKON_GAP(SSTVENC_PASOKON_P7_TIMEUNIT)},
+    {.frequency = 0, .duration_ns = 0},
+};
+
 /* SSTV mode specifications -- Wraase SC-2 modes */
 const static struct sstvenc_encoder_pulse sstvenc_sstv_wraasesc2_180_fp[] = {
     {.frequency = SSTVENC_FREQ_SYNC, .duration_ns = 5522500},
@@ -235,6 +287,67 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G,
 			     SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_R),
 	.vis_code = 0x28,
+    },
+    /* Pasokon modes */
+    {
+	.description = "Pasokon P3",
+	.name	     = "P3",
+	.initseq     = NULL,
+	.frontporch  = sstvenc_sstv_pasokon_p3_fp,
+	.gap01	     = sstvenc_sstv_pasokon_p3_sep,
+	.gap12	     = sstvenc_sstv_pasokon_p3_sep,
+	.backporch   = sstvenc_sstv_pasokon_p3_sep,
+	.finalseq    = NULL,
+	.scanline_period_ns
+	= {SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P3_TIMEUNIT),
+	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P3_TIMEUNIT),
+	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P3_TIMEUNIT)},
+	.width	= 640,
+	.height = 496,
+	.colour_space_order
+	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R,
+			     SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B),
+	.vis_code = 0x71,
+    },
+    {
+	.description = "Pasokon P5",
+	.name	     = "P5",
+	.initseq     = NULL,
+	.frontporch  = sstvenc_sstv_pasokon_p5_fp,
+	.gap01	     = sstvenc_sstv_pasokon_p5_sep,
+	.gap12	     = sstvenc_sstv_pasokon_p5_sep,
+	.backporch   = sstvenc_sstv_pasokon_p5_sep,
+	.finalseq    = NULL,
+	.scanline_period_ns
+	= {SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P5_TIMEUNIT),
+	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P5_TIMEUNIT),
+	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P5_TIMEUNIT)},
+	.width	= 640,
+	.height = 496,
+	.colour_space_order
+	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R,
+			     SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B),
+	.vis_code = 0x72,
+    },
+    {
+	.description = "Pasokon P7",
+	.name	     = "P7",
+	.initseq     = NULL,
+	.frontporch  = sstvenc_sstv_pasokon_p7_fp,
+	.gap01	     = sstvenc_sstv_pasokon_p7_sep,
+	.gap12	     = sstvenc_sstv_pasokon_p7_sep,
+	.backporch   = sstvenc_sstv_pasokon_p7_sep,
+	.finalseq    = NULL,
+	.scanline_period_ns
+	= {SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P7_TIMEUNIT),
+	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P7_TIMEUNIT),
+	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P7_TIMEUNIT)},
+	.width	= 640,
+	.height = 496,
+	.colour_space_order
+	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R,
+			     SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B),
+	.vis_code = 0x73,
     },
     /* Wraase SC-2 modes */
     {
