@@ -43,8 +43,7 @@ const static struct sstvenc_encoder_pulse sstvenc_sstv_robotbw_fp[] = {
 };
 
 /* SSTV mode specifications -- the table */
-#define SSTVENC_SSTV_MODES_NUM (2)
-const static struct sstvenc_mode sstvenc_sstv_modes[SSTVENC_SSTV_MODES_NUM]
+const static struct sstvenc_mode sstvenc_sstv_modes[]
     = {
 	{
 	    .description	= "Robot 8 B/W",
@@ -78,10 +77,12 @@ const static struct sstvenc_mode sstvenc_sstv_modes[SSTVENC_SSTV_MODES_NUM]
 	},
 };
 
-uint8_t sstvenc_get_mode_count() { return SSTVENC_SSTV_MODES_NUM; }
+uint8_t sstvenc_get_mode_count() {
+	return sizeof(sstvenc_sstv_modes) / sizeof(sstvenc_sstv_modes[0]);
+}
 
 const struct sstvenc_mode* sstvenc_get_mode_by_idx(uint8_t idx) {
-	if (idx < SSTVENC_SSTV_MODES_NUM) {
+	if (idx < sstvenc_get_mode_count()) {
 		return &sstvenc_sstv_modes[idx];
 	} else {
 		return NULL;
@@ -89,7 +90,7 @@ const struct sstvenc_mode* sstvenc_get_mode_by_idx(uint8_t idx) {
 }
 
 const struct sstvenc_mode* sstvenc_get_mode_by_name(const char* name) {
-	for (uint8_t idx = 0; idx < SSTVENC_SSTV_MODES_NUM; idx++) {
+	for (uint8_t idx = 0; idx < sstvenc_get_mode_count(); idx++) {
 		if (!strcmp(sstvenc_sstv_modes[idx].name, name)) {
 			return &sstvenc_sstv_modes[idx];
 		}
