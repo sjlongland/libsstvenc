@@ -317,11 +317,6 @@ struct sstvenc_encoder {
 
 		struct sstvenc_encoder_phase_scan_data {
 			/*!
-			 * The current image X position being scanned
-			 */
-			uint16_t x;
-
-			/*!
 			 * The current image Y position being scanned
 			 */
 			uint16_t y;

@@ -357,6 +357,13 @@ static void sstvenc_encoder_start_vis(struct sstvenc_encoder* const enc) {
 #define SSTVENC_ENCODER_SCAN_SEGMENT_NEXT	(7)
 
 static void
+sstvenc_encoder_next_scan_seg(struct sstvenc_encoder* const	enc,
+			    uint8_t next_segment) {
+	enc->vars.scan.segment = next_segment;
+	enc->vars.scan.idx = 0;
+}
+
+static void
 sstvenc_encoder_do_scan_seq(struct sstvenc_encoder* const	enc,
 			    const struct sstvenc_encoder_pulse* seq,
 			    uint8_t next_segment) {
@@ -388,7 +395,7 @@ sstvenc_encoder_do_scan_seq(struct sstvenc_encoder* const	enc,
 static void
 sstvenc_encoder_start_scan_channel(struct sstvenc_encoder* const enc,
 				   uint8_t			 ch) {
-	sstvenc_encoder_start_tone(enc, enc->amplitude, SSTVENC_FREQ_BLACK,
+	sstvenc_encoder_start_tone(enc, enc->amplitude, 0,
 				   enc->mode->scanline_period_us[ch]);
 }
 
@@ -460,8 +467,7 @@ static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
 }
 
 static void sstvenc_encoder_do_next_line(struct sstvenc_encoder* const enc) {
-	enc->vars.scan.x       = 0;
-	enc->vars.scan.segment = SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH;
+	sstvenc_encoder_next_scan_seg(enc, SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH);
 	enc->vars.scan.y++;
 	sstvenc_encoder_do_scan(enc);
 }
@@ -508,10 +514,8 @@ static void sstvenc_encoder_do_scan(struct sstvenc_encoder* const enc) {
 
 static void sstvenc_encoder_start_scan(struct sstvenc_encoder* const enc) {
 	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_SCAN);
-	enc->vars.scan.x       = 0;
 	enc->vars.scan.y       = 0;
-	enc->vars.scan.segment = 0;
-	enc->vars.scan.idx     = 0;
+	sstvenc_encoder_next_scan_seg(enc, SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH);
 	sstvenc_encoder_do_scan(enc);
 }
 
