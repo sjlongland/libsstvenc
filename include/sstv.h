@@ -174,7 +174,7 @@ sstvenc_get_pixel_posn(const struct sstvenc_mode* const mode, uint16_t x,
 	assert(x < mode->width);
 	assert(y < mode->height);
 
-	uint32_t idx  = y * mode->height;
+	uint32_t idx  = y * mode->width;
 	idx	     += x;
 
 	if ((mode->colour_space_order & SSTVENC_CSO_MASK_MODE)
