@@ -77,7 +77,7 @@
 	 | (((c0) << SSTVENC_CSO_BIT_C(0)) & SSTVENC_CSO_MASK_C(0))          \
 	 | (((c1) << SSTVENC_CSO_BIT_C(1)) & SSTVENC_CSO_MASK_C(1))          \
 	 | (((c2) << SSTVENC_CSO_BIT_C(2)) & SSTVENC_CSO_MASK_C(2))          \
-	 | (((c2) << SSTVENC_CSO_BIT_C(3)) & SSTVENC_CSO_MASK_C(3)))
+	 | (((c3) << SSTVENC_CSO_BIT_C(3)) & SSTVENC_CSO_MASK_C(3)))
 
 /*!
  * @}
