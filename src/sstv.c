@@ -32,10 +32,9 @@
 #define SSTVENC_VIS_BIT_DATA5	 (8)
 #define SSTVENC_VIS_BIT_DATA6	 (9)
 #define SSTVENC_VIS_BIT_DATA7	 (10)
-#define SSTVENC_VIS_BIT_DATA8	 (11)
-#define SSTVENC_VIS_BIT_PARITY	 (12)
-#define SSTVENC_VIS_BIT_STOP	 (13)
-#define SSTVENC_VIS_BIT_END	 (14)
+#define SSTVENC_VIS_BIT_PARITY	 (11)
+#define SSTVENC_VIS_BIT_STOP	 (12)
+#define SSTVENC_VIS_BIT_END	 (13)
 
 /* SSTV mode specifications -- Robot B/W modes */
 const static struct sstvenc_encoder_pulse sstvenc_sstv_robotbw_fp[] = {
@@ -309,7 +308,6 @@ static void sstvenc_encoder_do_vis(struct sstvenc_encoder* const enc) {
 		case SSTVENC_VIS_BIT_DATA5:
 		case SSTVENC_VIS_BIT_DATA6:
 		case SSTVENC_VIS_BIT_DATA7:
-		case SSTVENC_VIS_BIT_DATA8:
 			frequency = sstvenc_encoder_vis_data_freq(enc);
 			duration  = SSTVENC_PERIOD_VIS_BIT;
 			break;
