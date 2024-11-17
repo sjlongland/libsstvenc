@@ -51,7 +51,7 @@ sstvenc_ts_unit_to_samples(double time, uint32_t sample_rate, uint8_t unit) {
 		return SSTVENC_TS_INFINITE;
 	} else {
 		return sstvenc_ts_clamp_samples(
-		    ((uint64_t)(time * sample_rate))
+		    ((uint64_t)((time * sample_rate) + 0.5))
 		    / sstvenc_ts_unit_scale(unit));
 	}
 }
