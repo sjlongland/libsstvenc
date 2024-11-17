@@ -60,6 +60,21 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.vis_code = 0x02,
     },
     {
+	.description	    = "Robot 12 B/W",
+	.name		    = "R12BW",
+	.frontporch	    = sstvenc_sstv_robotbw_fp,
+	.gap01		    = NULL,
+	.gap12		    = NULL,
+	.backporch	    = NULL,
+	.scanline_period_us = {93000, 0, 0},
+	.width		    = 160,
+	.height		    = 120,
+	.colour_space_order
+	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
+			     SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
+	.vis_code = 0x86,
+    },
+    {
 	.description	    = "Robot 24 B/W",
 	.name		    = "R24BW",
 	.frontporch	    = sstvenc_sstv_robotbw_fp,
@@ -261,7 +276,7 @@ sstvenc_encoder_vis_data_freq(struct sstvenc_encoder* const enc) {
 static double
 sstvenc_encoder_vis_parity_freq(struct sstvenc_encoder* const enc) {
 	uint8_t ones = 0;
-	for (uint8_t i = 0; i < 7; i++) {
+	for (uint8_t i = 0; i < 8; i++) {
 		if (enc->mode->vis_code & (1 << i)) {
 			ones++;
 		}
