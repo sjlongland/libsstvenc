@@ -77,7 +77,7 @@
  */
 struct sstvenc_encoder_pulse {
 	uint32_t frequency;
-	uint32_t duration_us;
+	uint32_t duration_ns;
 };
 
 /*!
@@ -122,7 +122,7 @@ struct sstvenc_mode {
 	 * Scanline periods for each of the three channels.  For mono modes,
 	 * only the first is used.
 	 */
-	uint32_t			    scanline_period_us[3];
+	uint32_t			    scanline_period_ns[3];
 
 	/*!
 	 * Width of the SSTV image sent in pixels.

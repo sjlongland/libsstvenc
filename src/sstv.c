@@ -38,26 +38,26 @@
 
 /* SSTV mode specifications -- Robot B/W modes */
 const static struct sstvenc_encoder_pulse sstvenc_sstv_robotbw_fp[] = {
-    {.frequency = SSTVENC_FREQ_SYNC, .duration_us = 7000},
-    {.frequency = 0, .duration_us = 0},
+    {.frequency = SSTVENC_FREQ_SYNC, .duration_ns = 7000000},
+    {.frequency = 0, .duration_ns = 0},
 };
 
 /* SSTV mode specifications -- Wraase SC-2 modes */
 const static struct sstvenc_encoder_pulse sstvenc_sstv_wraasesc2_180_fp[] = {
-    {.frequency = SSTVENC_FREQ_SYNC, .duration_us = 5522 /* .5 */},
-    {.frequency = SSTVENC_FREQ_BLACK, .duration_us = 500},
-    {.frequency = 0, .duration_us = 0},
+    {.frequency = SSTVENC_FREQ_SYNC, .duration_ns = 5522500},
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_ns = 500000},
+    {.frequency = 0, .duration_ns = 0},
 };
 
 const static struct sstvenc_encoder_pulse sstvenc_sstv_wraasesc2_120_fp[] = {
-    {.frequency = SSTVENC_FREQ_SYNC, .duration_us = 5522 /* .5 */},
-    {.frequency = SSTVENC_FREQ_BLACK, .duration_us = 1000},
-    {.frequency = 0, .duration_us = 0},
+    {.frequency = SSTVENC_FREQ_SYNC, .duration_ns = 5522500},
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_ns = 1000000},
+    {.frequency = 0, .duration_ns = 0},
 };
 
 const static struct sstvenc_encoder_pulse sstvenc_sstv_wraasesc2_sep[] = {
-    {.frequency = SSTVENC_FREQ_BLACK, .duration_us = 500},
-    {.frequency = 0, .duration_us = 0},
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_ns = 500000},
+    {.frequency = 0, .duration_ns = 0},
 };
 
 /* SSTV mode specifications -- the table */
@@ -72,7 +72,7 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.gap12		    = NULL,
 	.backporch	    = NULL,
 	.finalseq	    = NULL,
-	.scanline_period_us = {59900, 0, 0},
+	.scanline_period_ns = {59900000, 0, 0},
 	.width		    = 160,
 	.height		    = 120,
 	.colour_space_order
@@ -89,7 +89,7 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.gap12		    = NULL,
 	.backporch	    = NULL,
 	.finalseq	    = NULL,
-	.scanline_period_us = {93000, 0, 0},
+	.scanline_period_ns = {93000000, 0, 0},
 	.width		    = 160,
 	.height		    = 120,
 	.colour_space_order
@@ -106,7 +106,7 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.gap12		    = NULL,
 	.backporch	    = NULL,
 	.finalseq	    = NULL,
-	.scanline_period_us = {93000, 0, 0},
+	.scanline_period_ns = {93000000, 0, 0},
 	.width		    = 320,
 	.height		    = 240,
 	.colour_space_order
@@ -125,7 +125,7 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.gap12		    = sstvenc_sstv_wraasesc2_sep,
 	.backporch	    = NULL,
 	.finalseq	    = NULL,
-	.scanline_period_us = {155985, 155985, 155985},
+	.scanline_period_ns = {155985000, 155985000, 155985000},
 	.width		    = 320,
 	.height		    = 256,
 	.colour_space_order
@@ -142,7 +142,7 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.gap12		    = NULL,
 	.backporch	    = NULL,
 	.finalseq	    = NULL,
-	.scanline_period_us = {235000, 235000, 235000},
+	.scanline_period_ns = {235000000, 235000000, 235000000},
 	.width		    = 320,
 	.height		    = 256,
 	.colour_space_order
@@ -229,12 +229,12 @@ static void sstvenc_encoder_preamble_next(struct sstvenc_encoder* const enc) {
 
 static void sstvenc_encoder_start_tone(struct sstvenc_encoder* const enc,
 				       double amplitude, uint32_t frequency,
-				       uint32_t duration_us) {
+				       uint32_t duration, uint8_t time_unit) {
 	assert(enc->tone_state == SSTVENC_ENCODER_TONE_GEN_INIT);
 	enc->cw.osc.amplitude = amplitude;
 	sstvenc_osc_set_frequency(&(enc->cw.osc), frequency);
 	enc->sample_rem = sstvenc_ts_unit_to_samples(
-	    duration_us, enc->sample_rate, SSTVENC_TS_UNIT_MICROSECONDS);
+	    duration, enc->sample_rate, time_unit);
 	enc->tone_state = SSTVENC_ENCODER_TONE_GEN_RUN;
 }
 
@@ -263,9 +263,9 @@ sstvenc_encoder_preamble_do_tone(struct sstvenc_encoder* const enc) {
 	    = &(enc->preamble[enc->vars.preamble.step]);
 	switch (enc->tone_state) {
 	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		sstvenc_encoder_start_tone(enc, step->amplitude,
-					   step->frequency,
-					   step->data.tone.duration * 1000);
+		sstvenc_encoder_start_tone(
+		    enc, step->amplitude, step->frequency,
+		    step->data.tone.duration, SSTVENC_TS_UNIT_SECONDS);
 		/* Fall-thru */
 	case SSTVENC_ENCODER_TONE_GEN_RUN:
 		sstvenc_encoder_compute_tone(enc);
@@ -413,7 +413,8 @@ static void sstvenc_encoder_do_vis(struct sstvenc_encoder* const enc) {
 			break;
 		}
 		sstvenc_encoder_start_tone(enc, enc->amplitude, frequency,
-					   duration_us);
+					   duration_us,
+					   SSTVENC_TS_UNIT_MICROSECONDS);
 		/* Fall-thru */
 	case SSTVENC_ENCODER_TONE_GEN_RUN:
 		sstvenc_encoder_compute_tone(enc);
@@ -459,7 +460,7 @@ static void sstvenc_encoder_do_initseq(struct sstvenc_encoder* const enc) {
 	    = (enc->mode->initseq)
 		  ? (&enc->mode->initseq[enc->vars.initseq.idx])
 		  : NULL;
-	if (!step || !step->duration_us) {
+	if (!step || !step->duration_ns) {
 		/* No sequence, move to the image transmission step */
 		sstvenc_encoder_start_scan(enc);
 		return;
@@ -467,8 +468,9 @@ static void sstvenc_encoder_do_initseq(struct sstvenc_encoder* const enc) {
 
 	switch (enc->tone_state) {
 	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		sstvenc_encoder_start_tone(
-		    enc, enc->amplitude, step->frequency, step->duration_us);
+		sstvenc_encoder_start_tone(enc, enc->amplitude,
+					   step->frequency, step->duration_ns,
+					   SSTVENC_TS_UNIT_NANOSECONDS);
 		/* Fall-thru */
 	case SSTVENC_ENCODER_TONE_GEN_RUN:
 		sstvenc_encoder_compute_tone(enc);
@@ -486,7 +488,7 @@ sstvenc_encoder_do_scan_seq(struct sstvenc_encoder* const	enc,
 			    uint8_t next_segment) {
 	const struct sstvenc_encoder_pulse* step
 	    = (seq) ? (&seq[enc->vars.scan.idx]) : NULL;
-	if (!step || !step->duration_us) {
+	if (!step || !step->duration_ns) {
 		/* No sequence, move to the next state */
 		sstvenc_encoder_next_scan_seg(enc, next_segment);
 		sstvenc_encoder_do_scan(enc);
@@ -495,8 +497,9 @@ sstvenc_encoder_do_scan_seq(struct sstvenc_encoder* const	enc,
 
 	switch (enc->tone_state) {
 	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		sstvenc_encoder_start_tone(
-		    enc, enc->amplitude, step->frequency, step->duration_us);
+		sstvenc_encoder_start_tone(enc, enc->amplitude,
+					   step->frequency, step->duration_ns,
+					   SSTVENC_TS_UNIT_NANOSECONDS);
 		/* Fall-thru */
 	case SSTVENC_ENCODER_TONE_GEN_RUN:
 		sstvenc_encoder_compute_tone(enc);
@@ -512,7 +515,8 @@ static void
 sstvenc_encoder_start_scan_channel(struct sstvenc_encoder* const enc,
 				   uint8_t			 ch) {
 	sstvenc_encoder_start_tone(enc, enc->amplitude, 0,
-				   enc->mode->scanline_period_us[ch]);
+				   enc->mode->scanline_period_ns[ch],
+				   SSTVENC_TS_UNIT_NANOSECONDS);
 }
 
 static double
@@ -522,15 +526,15 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 	 * sample_rem is the number of samples before we hit the end of the
 	 * scan line, thus is the inverse X axis, scaled.
 	 *
-	 * scanline_period_us is in 1µs increments.
+	 * scanline_period_ns is in 1ns increments.
 	 * sample_rem is in sample rate units.  If we use
 	 * sstvenc_ts_samples_to_unit, we can convert that to a fraction of
 	 * the scan line, with 0.0 being the right-hand edge.
 	 */
 	double x_rem_frac
 	    = sstvenc_ts_samples_to_unit(enc->sample_rem, enc->sample_rate,
-					 SSTVENC_TS_UNIT_MICROSECONDS)
-	      / enc->mode->scanline_period_us[ch];
+					 SSTVENC_TS_UNIT_NANOSECONDS)
+	      / enc->mode->scanline_period_ns[ch];
 	uint16_t x   = (uint16_t)(enc->mode->width * (1.0 - x_rem_frac));
 
 	uint32_t idx = sstvenc_get_pixel_posn(enc->mode, x, enc->vars.scan.y);
@@ -655,7 +659,7 @@ static void sstvenc_encoder_do_finalseq(struct sstvenc_encoder* const enc) {
 	    = (enc->mode->finalseq)
 		  ? (&enc->mode->finalseq[enc->vars.finalseq.idx])
 		  : NULL;
-	if (!step || !step->duration_us) {
+	if (!step || !step->duration_ns) {
 		/* No sequence, move to the FSK step */
 		sstvenc_encoder_start_fsk(enc);
 		return;
@@ -663,8 +667,9 @@ static void sstvenc_encoder_do_finalseq(struct sstvenc_encoder* const enc) {
 
 	switch (enc->tone_state) {
 	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		sstvenc_encoder_start_tone(
-		    enc, enc->amplitude, step->frequency, step->duration_us);
+		sstvenc_encoder_start_tone(enc, enc->amplitude,
+					   step->frequency, step->duration_ns,
+					   SSTVENC_TS_UNIT_NANOSECONDS);
 		/* Fall-thru */
 	case SSTVENC_ENCODER_TONE_GEN_RUN:
 		sstvenc_encoder_compute_tone(enc);
@@ -767,8 +772,9 @@ static void sstvenc_encoder_do_fsk(struct sstvenc_encoder* const enc) {
 			} else {
 				frequency = SSTVENC_FREQ_FSKID_BIT0;
 			}
-			sstvenc_encoder_start_tone(enc, enc->amplitude,
-						   frequency, duration_us);
+			sstvenc_encoder_start_tone(
+			    enc, enc->amplitude, frequency, duration_us,
+			    SSTVENC_TS_UNIT_MICROSECONDS);
 			/* Fall-thru */
 		case SSTVENC_ENCODER_TONE_GEN_RUN:
 			sstvenc_encoder_compute_tone(enc);
@@ -783,7 +789,8 @@ static void sstvenc_encoder_do_fsk(struct sstvenc_encoder* const enc) {
 		case SSTVENC_ENCODER_TONE_GEN_INIT:
 			/* Just start a 1kHz tone to quickly tail-off */
 			sstvenc_encoder_start_tone(enc, enc->amplitude,
-						   1000.0, enc->slope_period);
+						   1000.0, enc->slope_period,
+						   SSTVENC_TS_UNIT_SECONDS);
 			/* Fall-thru */
 		case SSTVENC_ENCODER_TONE_GEN_RUN:
 			sstvenc_encoder_compute_tone(enc);
