@@ -415,7 +415,7 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 	    = sstvenc_ts_samples_to_unit(enc->sample_rem, enc->sample_rate,
 					 SSTVENC_TS_UNIT_MICROSECONDS)
 	      / enc->mode->scanline_period_us[ch];
-	uint16_t x = (uint16_t)((enc->mode->width - 1) * (1.0 - x_rem_frac));
+	uint16_t x = (uint16_t)(enc->mode->width * (1.0 - x_rem_frac));
 
 	uint32_t idx = sstvenc_get_pixel_posn(enc->mode, x, enc->vars.scan.y);
 
