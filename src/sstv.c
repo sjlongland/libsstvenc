@@ -261,7 +261,7 @@ sstvenc_encoder_vis_data_freq(struct sstvenc_encoder* const enc) {
 static double
 sstvenc_encoder_vis_parity_freq(struct sstvenc_encoder* const enc) {
 	uint8_t ones = 0;
-	for (uint8_t i = 0; i < 8; i++) {
+	for (uint8_t i = 0; i < 7; i++) {
 		if (enc->mode->vis_code & (1 << i)) {
 			ones++;
 		}
