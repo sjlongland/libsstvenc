@@ -16,10 +16,10 @@
 #define SSTVENC_FREQ_FSKID_BIT1	 (1900.0)
 #define SSTVENC_FREQ_FSKID_BIT0	 (2100.0)
 
-#define SSTVENC_PERIOD_VIS_START (0.300)
-#define SSTVENC_PERIOD_VIS_SYNC	 (0.010)
-#define SSTVENC_PERIOD_VIS_BIT	 (0.030)
-#define SSTVENC_PERIOD_FSKID_BIT (0.022)
+#define SSTVENC_PERIOD_VIS_START (300000u)
+#define SSTVENC_PERIOD_VIS_SYNC	 (10000u)
+#define SSTVENC_PERIOD_VIS_BIT	 (30000u)
+#define SSTVENC_PERIOD_FSKID_BIT (22000u)
 
 #define SSTVENC_VIS_BIT_START1	 (0)
 #define SSTVENC_VIS_BIT_START2	 (1)
@@ -38,8 +38,8 @@
 
 /* SSTV mode specifications -- Robot B/W modes */
 const static struct sstvenc_encoder_pulse sstvenc_sstv_robotbw_fp[] = {
-    {.frequency = SSTVENC_FREQ_SYNC, .duration = 0.007},
-    {.frequency = 0, .duration = 0},
+    {.frequency = SSTVENC_FREQ_SYNC, .duration_us = 7000},
+    {.frequency = 0, .duration_us = 0},
 };
 
 /* SSTV mode specifications -- the table */
@@ -47,30 +47,30 @@ const static struct sstvenc_encoder_pulse sstvenc_sstv_robotbw_fp[] = {
 const static struct sstvenc_mode sstvenc_sstv_modes[SSTVENC_SSTV_MODES_NUM]
     = {
 	{
-	    .description     = "Robot 8 B/W",
-	    .name	     = "R8BW",
-	    .frontporch	     = sstvenc_sstv_robotbw_fp,
-	    .gap01	     = NULL,
-	    .gap12	     = NULL,
-	    .backporch	     = NULL,
-	    .scanline_period = {0.0599, 0.0, 0.0},
-	    .width	     = 160,
-	    .height	     = 120,
+	    .description	= "Robot 8 B/W",
+	    .name		= "R8BW",
+	    .frontporch		= sstvenc_sstv_robotbw_fp,
+	    .gap01		= NULL,
+	    .gap12		= NULL,
+	    .backporch		= NULL,
+	    .scanline_period_us = {66900, 0, 0},
+	    .width		= 160,
+	    .height		= 120,
 	    .colour_space_order
 	    = SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
 				 SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
 	    .vis_code = 0x02,
 	},
 	{
-	    .description     = "Robot 24 B/W",
-	    .name	     = "R24BW",
-	    .frontporch	     = sstvenc_sstv_robotbw_fp,
-	    .gap01	     = NULL,
-	    .gap12	     = NULL,
-	    .backporch	     = NULL,
-	    .scanline_period = {0.093, 0.0, 0.0},
-	    .width	     = 320,
-	    .height	     = 240,
+	    .description	= "Robot 24 B/W",
+	    .name		= "R24BW",
+	    .frontporch		= sstvenc_sstv_robotbw_fp,
+	    .gap01		= NULL,
+	    .gap12		= NULL,
+	    .backporch		= NULL,
+	    .scanline_period_us = {93000, 0, 0},
+	    .width		= 320,
+	    .height		= 240,
 	    .colour_space_order
 	    = SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
 				 SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
@@ -148,12 +148,13 @@ static void sstvenc_encoder_preamble_next(struct sstvenc_encoder* const enc) {
 #define SSTVENC_ENCODER_TONE_GEN_DONE (2)
 
 static void sstvenc_encoder_start_tone(struct sstvenc_encoder* const enc,
-				       double amplitude, double frequency,
-				       double duration) {
+				       double amplitude, uint32_t frequency,
+				       uint32_t duration_us) {
 	assert(enc->tone_state == SSTVENC_ENCODER_TONE_GEN_INIT);
 	enc->cw.osc.amplitude = amplitude;
 	enc->cw.osc.frequency = frequency;
-	enc->sample_rem = ((uint16_t)((duration * enc->sample_rate) + 0.5));
+	enc->sample_rem	      = sstvenc_ts_unit_to_samples(
+		  duration_us, enc->sample_rate, SSTVENC_TS_UNIT_MICROSECONDS);
 	enc->tone_state = SSTVENC_ENCODER_TONE_GEN_RUN;
 }
 
@@ -184,7 +185,7 @@ sstvenc_encoder_preamble_do_tone(struct sstvenc_encoder* const enc) {
 	case SSTVENC_ENCODER_TONE_GEN_INIT:
 		sstvenc_encoder_start_tone(enc, step->amplitude,
 					   step->frequency,
-					   step->data.tone.duration);
+					   step->data.tone.duration * 1000);
 		/* Fall-thru */
 	case SSTVENC_ENCODER_TONE_GEN_RUN:
 		sstvenc_encoder_compute_tone(enc);
@@ -274,8 +275,8 @@ sstvenc_encoder_vis_parity_freq(struct sstvenc_encoder* const enc) {
 }
 
 static void sstvenc_encoder_do_vis(struct sstvenc_encoder* const enc) {
-	double frequency;
-	double duration;
+	double	 frequency;
+	uint32_t duration_us;
 	if (enc->vars.vis.bit >= SSTVENC_VIS_BIT_END) {
 		/* This is the end of the VIS header */
 		sstvenc_encoder_start_scan(enc);
@@ -287,20 +288,20 @@ static void sstvenc_encoder_do_vis(struct sstvenc_encoder* const enc) {
 		/* Next bit */
 		switch (enc->vars.vis.bit) {
 		case SSTVENC_VIS_BIT_START1:
-			frequency = SSTVENC_FREQ_VIS_START;
-			duration  = SSTVENC_PERIOD_VIS_START;
+			frequency   = SSTVENC_FREQ_VIS_START;
+			duration_us = SSTVENC_PERIOD_VIS_START;
 			break;
 		case SSTVENC_VIS_BIT_START2:
-			frequency = SSTVENC_FREQ_SYNC;
-			duration  = SSTVENC_PERIOD_VIS_SYNC;
+			frequency   = SSTVENC_FREQ_SYNC;
+			duration_us = SSTVENC_PERIOD_VIS_SYNC;
 			break;
 		case SSTVENC_VIS_BIT_START3:
-			frequency = SSTVENC_FREQ_VIS_START;
-			duration  = SSTVENC_PERIOD_VIS_START;
+			frequency   = SSTVENC_FREQ_VIS_START;
+			duration_us = SSTVENC_PERIOD_VIS_START;
 			break;
 		case SSTVENC_VIS_BIT_START4:
-			frequency = SSTVENC_FREQ_SYNC;
-			duration  = SSTVENC_PERIOD_VIS_BIT;
+			frequency   = SSTVENC_FREQ_SYNC;
+			duration_us = SSTVENC_PERIOD_VIS_BIT;
 			break;
 		case SSTVENC_VIS_BIT_DATA1:
 		case SSTVENC_VIS_BIT_DATA2:
@@ -309,24 +310,24 @@ static void sstvenc_encoder_do_vis(struct sstvenc_encoder* const enc) {
 		case SSTVENC_VIS_BIT_DATA5:
 		case SSTVENC_VIS_BIT_DATA6:
 		case SSTVENC_VIS_BIT_DATA7:
-			frequency = sstvenc_encoder_vis_data_freq(enc);
-			duration  = SSTVENC_PERIOD_VIS_BIT;
+			frequency   = sstvenc_encoder_vis_data_freq(enc);
+			duration_us = SSTVENC_PERIOD_VIS_BIT;
 			break;
 		case SSTVENC_VIS_BIT_PARITY:
-			frequency = sstvenc_encoder_vis_parity_freq(enc);
-			duration  = SSTVENC_PERIOD_VIS_BIT;
+			frequency   = sstvenc_encoder_vis_parity_freq(enc);
+			duration_us = SSTVENC_PERIOD_VIS_BIT;
 			break;
 		case SSTVENC_VIS_BIT_STOP:
-			frequency = SSTVENC_FREQ_SYNC;
-			duration  = SSTVENC_PERIOD_VIS_BIT;
+			frequency   = SSTVENC_FREQ_SYNC;
+			duration_us = SSTVENC_PERIOD_VIS_BIT;
 			break;
 		default:
-			frequency = 0;
-			duration  = 0;
+			frequency   = 0;
+			duration_us = 0;
 			break;
 		}
 		sstvenc_encoder_start_tone(enc, enc->amplitude, frequency,
-					   duration);
+					   duration_us);
 		/* Fall-thru */
 	case SSTVENC_ENCODER_TONE_GEN_RUN:
 		sstvenc_encoder_compute_tone(enc);
@@ -361,7 +362,7 @@ sstvenc_encoder_do_scan_seq(struct sstvenc_encoder* const	enc,
 			    uint8_t next_segment) {
 	const struct sstvenc_encoder_pulse* step
 	    = (seq) ? (&seq[enc->vars.scan.idx]) : NULL;
-	if (!step || !step->duration) {
+	if (!step || !step->duration_us) {
 		/* No sequence, move to the next state */
 		enc->vars.scan.x       = 0;
 		enc->vars.scan.segment = next_segment;
@@ -371,8 +372,8 @@ sstvenc_encoder_do_scan_seq(struct sstvenc_encoder* const	enc,
 
 	switch (enc->tone_state) {
 	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		sstvenc_encoder_start_tone(enc, enc->amplitude,
-					   step->frequency, step->duration);
+		sstvenc_encoder_start_tone(
+		    enc, enc->amplitude, step->frequency, step->duration_us);
 		/* Fall-thru */
 	case SSTVENC_ENCODER_TONE_GEN_RUN:
 		sstvenc_encoder_compute_tone(enc);
@@ -387,19 +388,46 @@ sstvenc_encoder_do_scan_seq(struct sstvenc_encoder* const	enc,
 static void
 sstvenc_encoder_start_scan_channel(struct sstvenc_encoder* const enc,
 				   uint8_t			 ch) {
-	sstvenc_encoder_start_tone(
-	    enc, enc->amplitude,
-	    sstvenc_level_freq(
-		enc->framebuffer[sstvenc_get_pixel_posn(enc->mode,
-							enc->vars.scan.x,
-							enc->vars.scan.y)
-				 + ch]),
-	    enc->mode->scanline_period[ch] / enc->mode->width);
+	sstvenc_encoder_start_tone(enc, enc->amplitude, SSTVENC_FREQ_BLACK,
+				   enc->mode->scanline_period_us[ch]);
 }
 
 static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
 					    uint8_t ch) {
-	if (enc->vars.scan.x >= enc->mode->width) {
+	/*
+	 * sample_rem is the number of samples before we hit the end of the
+	 * scan line, thus is the inverse X axis, scaled.
+	 *
+	 * scanline_period_us is in 1µs increments.
+	 * sample_rem is in sample rate units.  If we use
+	 * sstvenc_ts_samples_to_unit, we can convert that to a fraction of
+	 * the scan line, with 0.0 being the right-hand edge.
+	 */
+	double x_rem_frac
+	    = sstvenc_ts_samples_to_unit(enc->sample_rem, enc->sample_rate,
+					 SSTVENC_TS_UNIT_MICROSECONDS)
+	      / enc->mode->scanline_period_us[ch];
+	uint16_t x
+	    = (uint16_t)((enc->mode->width * (1.0 - x_rem_frac)) + 0.5);
+
+	if (x >= enc->mode->width) {
+		x = enc->mode->width - 1;
+	}
+
+	switch (enc->tone_state) {
+	case SSTVENC_ENCODER_TONE_GEN_INIT:
+		sstvenc_encoder_start_scan_channel(enc, ch);
+		/* Fall-thru */
+	case SSTVENC_ENCODER_TONE_GEN_RUN:
+		enc->cw.osc.frequency = sstvenc_level_freq(
+		    enc->framebuffer[sstvenc_get_pixel_posn(enc->mode, x,
+							    enc->vars.scan.y)
+				     + ch]),
+		sstvenc_encoder_compute_tone(enc);
+		break;
+	case SSTVENC_ENCODER_TONE_GEN_DONE:
+		sstvenc_encoder_finish_tone(enc);
+
 		/* We have reached the right-side of the image */
 		switch (enc->mode->colour_space_order
 			& SSTVENC_CSO_MASK_MODE) {
@@ -424,20 +452,8 @@ static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
 				break;
 			}
 		}
-		sstvenc_encoder_do_scan(enc);
-		return;
-	}
 
-	switch (enc->tone_state) {
-	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		sstvenc_encoder_start_scan_channel(enc, ch);
-		/* Fall-thru */
-	case SSTVENC_ENCODER_TONE_GEN_RUN:
-		sstvenc_encoder_compute_tone(enc);
-		break;
-	case SSTVENC_ENCODER_TONE_GEN_DONE:
-		sstvenc_encoder_finish_tone(enc);
-		enc->vars.scan.x++;
+		sstvenc_encoder_do_scan(enc);
 		break;
 	}
 }
@@ -566,7 +582,7 @@ static void sstvenc_encoder_start_fsk(struct sstvenc_encoder* const enc) {
 static void sstvenc_encoder_do_fsk(struct sstvenc_encoder* const enc) {
 	if (enc->fsk_id) {
 		double frequency;
-		double duration;
+		double duration_us;
 
 		if (enc->vars.fsk.bit >= 6) {
 			enc->vars.fsk.byte++;
@@ -590,7 +606,7 @@ static void sstvenc_encoder_do_fsk(struct sstvenc_encoder* const enc) {
 				frequency = SSTVENC_FREQ_FSKID_BIT0;
 			}
 			sstvenc_encoder_start_tone(enc, enc->amplitude,
-						   frequency, duration);
+						   frequency, duration_us);
 			/* Fall-thru */
 		case SSTVENC_ENCODER_TONE_GEN_RUN:
 			sstvenc_encoder_compute_tone(enc);

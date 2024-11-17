@@ -74,8 +74,8 @@
  * Convenience structure, encodes the duration and frequency of a pulse.
  */
 struct sstvenc_encoder_pulse {
-	double frequency;
-	double duration;
+	uint32_t frequency;
+	uint32_t duration_us;
 };
 
 /*!
@@ -112,7 +112,7 @@ struct sstvenc_mode {
 	 * Scanline periods for each of the three channels.  For mono modes,
 	 * only the first is used.
 	 */
-	double				    scanline_period[3];
+	uint32_t			    scanline_period_us[3];
 
 	/*!
 	 * Width of the SSTV image sent in pixels.
