@@ -12,6 +12,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "timescale.h"
 #include <math.h>
 #include <stdint.h>
 
@@ -27,7 +28,7 @@
 /*!
  * Hold time = infinite
  */
-#define SSTVENC_PS_HOLD_TIME_INF UINT32_MAX
+#define SSTVENC_PS_HOLD_TIME_INF SSTVENC_TS_INFINITE
 
 /*!
  * Pulse shaper data structure.
@@ -78,18 +79,10 @@ sstvenc_ps_reset_samples(struct sstvenc_pulseshape* const ps,
  * identical settings.
  */
 static inline void sstvenc_ps_reset(struct sstvenc_pulseshape* const ps,
-				    double hold_time) {
-	if (hold_time == INFINITY) {
-		sstvenc_ps_reset_samples(ps, SSTVENC_PS_HOLD_TIME_INF);
-	} else {
-		double samples = (uint64_t)(hold_time * ps->sample_rate);
-		if (samples > UINT32_MAX) {
-			sstvenc_ps_reset_samples(ps,
-						 SSTVENC_PS_HOLD_TIME_INF);
-		} else {
-			sstvenc_ps_reset_samples(ps, samples);
-		}
-	}
+				    double hold_time, uint8_t time_unit) {
+	uint32_t samples = sstvenc_ts_unit_to_samples(
+	    hold_time, ps->sample_rate, time_unit);
+	sstvenc_ps_reset_samples(ps, samples);
 }
 
 /*!
@@ -108,28 +101,30 @@ static inline void sstvenc_ps_reset(struct sstvenc_pulseshape* const ps,
 static inline void sstvenc_ps_init(struct sstvenc_pulseshape* const ps,
 				   double amplitude, double rise_time,
 				   double hold_time, double fall_time,
-				   uint32_t sample_rate) {
-	uint64_t samples;
+				   uint32_t sample_rate, uint8_t time_unit) {
+	uint32_t samples;
 
 	ps->amplitude	= amplitude;
 	ps->sample_rate = sample_rate;
 	ps->output	= 0.0;
 
-	samples		= (uint64_t)(rise_time * sample_rate);
+	samples
+	    = sstvenc_ts_unit_to_samples(rise_time, sample_rate, time_unit);
 	if (samples > UINT16_MAX) {
 		ps->rise_sz = UINT16_MAX;
 	} else {
 		ps->rise_sz = samples;
 	}
 
-	samples = (uint64_t)(fall_time * sample_rate);
+	samples
+	    = sstvenc_ts_unit_to_samples(fall_time, sample_rate, time_unit);
 	if (samples > UINT16_MAX) {
 		ps->fall_sz = UINT16_MAX;
 	} else {
 		ps->fall_sz = samples;
 	}
 
-	sstvenc_ps_reset(ps, hold_time);
+	sstvenc_ps_reset(ps, hold_time, time_unit);
 }
 
 /*!

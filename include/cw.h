@@ -82,11 +82,11 @@ struct sstvenc_cw_mod {
 static inline void sstvenc_cw_init(struct sstvenc_cw_mod* const cw,
 				   const char* text, double amplitude,
 				   double frequency, double dit_period,
-				   double   slope_period,
-				   uint32_t sample_rate) {
+				   double slope_period, uint32_t sample_rate,
+				   uint8_t time_unit) {
 
 	sstvenc_ps_init(&(cw->ps), amplitude, slope_period, INFINITY,
-			slope_period, sample_rate);
+			slope_period, sample_rate, time_unit);
 	sstvenc_osc_init(&(cw->osc), 1.0, frequency, 0.0, sample_rate);
 	cw->dit_period	= ((uint16_t)(sample_rate * dit_period + 0.5));
 	cw->pos		= 0;

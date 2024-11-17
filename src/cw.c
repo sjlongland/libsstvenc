@@ -240,7 +240,7 @@ static void sstvenc_cw_start_mark(struct sstvenc_cw_mod* const cw) {
 }
 
 static void sstvenc_cw_end_subsym(struct sstvenc_cw_mod* const cw) {
-	sstvenc_ps_reset(&(cw->ps), INFINITY);
+	sstvenc_ps_reset(&(cw->ps), INFINITY, SSTVENC_TS_UNIT_SECONDS);
 	cw->pos++;
 	if (cw->symbol->value[cw->pos]) {
 		/* We need to produce another mark */
@@ -252,7 +252,7 @@ static void sstvenc_cw_end_subsym(struct sstvenc_cw_mod* const cw) {
 }
 
 static void sstvenc_cw_end_symbol(struct sstvenc_cw_mod* const cw) {
-	sstvenc_ps_reset(&(cw->ps), INFINITY);
+	sstvenc_ps_reset(&(cw->ps), INFINITY, SSTVENC_TS_UNIT_SECONDS);
 	cw->state	 = SSTVENC_CW_MOD_STATE_NEXT_SYM;
 	cw->text_string += strlen(cw->symbol->key);
 	cw->symbol	 = NULL;

@@ -206,7 +206,7 @@ sstvenc_encoder_preamble_do_cw(struct sstvenc_encoder* const enc) {
 		sstvenc_cw_init(&(enc->cw), step->data.cw.text,
 				step->amplitude, step->frequency,
 				step->data.cw.dit_period, enc->slope_period,
-				enc->sample_rate);
+				enc->sample_rate, step->data.cw.time_unit);
 		/* Fall-thru */
 	case SSTVENC_CW_MOD_STATE_NEXT_SYM:
 	case SSTVENC_CW_MOD_STATE_MARK:
@@ -216,7 +216,8 @@ sstvenc_encoder_preamble_do_cw(struct sstvenc_encoder* const enc) {
 		enc->output = enc->cw.output;
 		break;
 	case SSTVENC_CW_MOD_STATE_DONE:
-		sstvenc_ps_reset(&(enc->cw.ps), INFINITY);
+		sstvenc_ps_reset(&(enc->cw.ps), INFINITY,
+				 SSTVENC_TS_UNIT_SECONDS);
 		sstvenc_encoder_preamble_next(enc);
 		break;
 	}

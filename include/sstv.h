@@ -214,6 +214,8 @@ struct sstvenc_preamble_step {
 			double	    dit_period;
 			/*! The text to be transmitted */
 			const char* text;
+			/*! Time unit */
+			uint8_t	    time_unit;
 		} cw;
 	} data;
 
@@ -233,7 +235,8 @@ struct sstvenc_preamble_step {
 	}, \
 }
 
-#define SSTVENC_PREAMBLE_STEP_CW(amplitude, frequency, dit_period, text)     \
+#define SSTVENC_PREAMBLE_STEP_CW(amplitude, frequency, dit_period,           \
+				 time_unit, text)                            \
 	{ \
 	.type = SSTVENC_PREAMBLE_TYPE_CW, \
 	.amplitude = (amplitude), \
@@ -242,6 +245,7 @@ struct sstvenc_preamble_step {
 		.cw = { \
 			.dit_period = (dit_period), \
 			.text = (text), \
+			.time_unit = (time_unit),\
 		}, \
 	}, \
 }
