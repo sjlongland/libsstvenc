@@ -371,8 +371,7 @@ sstvenc_encoder_do_scan_seq(struct sstvenc_encoder* const	enc,
 	    = (seq) ? (&seq[enc->vars.scan.idx]) : NULL;
 	if (!step || !step->duration_us) {
 		/* No sequence, move to the next state */
-		enc->vars.scan.x       = 0;
-		enc->vars.scan.segment = next_segment;
+		sstvenc_encoder_next_scan_seg(enc, next_segment);
 		sstvenc_encoder_do_scan(enc);
 		return;
 	}
