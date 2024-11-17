@@ -152,9 +152,9 @@ static void sstvenc_encoder_start_tone(struct sstvenc_encoder* const enc,
 				       uint32_t duration_us) {
 	assert(enc->tone_state == SSTVENC_ENCODER_TONE_GEN_INIT);
 	enc->cw.osc.amplitude = amplitude;
-	enc->cw.osc.frequency = frequency;
-	enc->sample_rem	      = sstvenc_ts_unit_to_samples(
-		  duration_us, enc->sample_rate, SSTVENC_TS_UNIT_MICROSECONDS);
+	sstvenc_osc_set_frequency(&(enc->cw.osc), frequency);
+	enc->sample_rem = sstvenc_ts_unit_to_samples(
+	    duration_us, enc->sample_rate, SSTVENC_TS_UNIT_MICROSECONDS);
 	enc->tone_state = SSTVENC_ENCODER_TONE_GEN_RUN;
 }
 
@@ -429,8 +429,8 @@ static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
 		sstvenc_encoder_start_scan_channel(enc, ch);
 		/* Fall-thru */
 	case SSTVENC_ENCODER_TONE_GEN_RUN:
-		enc->cw.osc.frequency
-		    = sstvenc_encoder_get_pixel_freq(enc, ch);
+		sstvenc_osc_set_frequency(
+		    &(enc->cw.osc), sstvenc_encoder_get_pixel_freq(enc, ch));
 		sstvenc_encoder_compute_tone(enc);
 		break;
 	case SSTVENC_ENCODER_TONE_GEN_DONE:
