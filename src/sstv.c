@@ -162,9 +162,9 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.scanline_period_ns = {59900000, 0, 0},
 	.width		    = 160,
 	.height		    = 120,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
-			     SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y, SSTVENC_CSO_CH_NONE,
+	    SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x02,
     },
     {
@@ -179,9 +179,9 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.scanline_period_ns = {93000000, 0, 0},
 	.width		    = 160,
 	.height		    = 120,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
-			     SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y, SSTVENC_CSO_CH_NONE,
+	    SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x86,
     },
     {
@@ -196,9 +196,9 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.scanline_period_ns = {93000000, 0, 0},
 	.width		    = 320,
 	.height		    = 240,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
-			     SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y, SSTVENC_CSO_CH_NONE,
+	    SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x0a,
     },
     /* Scottie modes */
@@ -214,9 +214,9 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.scanline_period_ns = {136740000, 136740000, 136740000},
 	.width		    = 320,
 	.height		    = 256,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G,
-			     SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_R),
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B,
+	    SSTVENC_CSO_CH_R, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x3c,
     },
     {
@@ -231,9 +231,9 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.scanline_period_ns = {86564000, 86564000, 86564000},
 	.width		    = 320,
 	.height		    = 256,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G,
-			     SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_R),
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B,
+	    SSTVENC_CSO_CH_R, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x38,
     },
     {
@@ -248,9 +248,9 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.scanline_period_ns = {344100000, 344100000, 344100000},
 	.width		    = 320,
 	.height		    = 256,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G,
-			     SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_R),
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B,
+	    SSTVENC_CSO_CH_R, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x4c,
     },
     /* Martin modes */
@@ -266,9 +266,9 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.scanline_period_ns = {146432000, 146432000, 146432000},
 	.width		    = 320,
 	.height		    = 256,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G,
-			     SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_R),
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B,
+	    SSTVENC_CSO_CH_R, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x2c,
     },
     {
@@ -283,9 +283,9 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.scanline_period_ns = {73216000, 73216000, 73216000},
 	.width		    = 320,
 	.height		    = 256,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G,
-			     SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_R),
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B,
+	    SSTVENC_CSO_CH_R, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x28,
     },
     /* Pasokon modes */
@@ -302,11 +302,11 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	= {SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P3_TIMEUNIT),
 	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P3_TIMEUNIT),
 	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P3_TIMEUNIT)},
-	.width	= 640,
-	.height = 496,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R,
-			     SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B),
+	.width		    = 640,
+	.height		    = 496,
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R, SSTVENC_CSO_CH_G,
+	    SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x71,
     },
     {
@@ -322,11 +322,11 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	= {SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P5_TIMEUNIT),
 	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P5_TIMEUNIT),
 	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P5_TIMEUNIT)},
-	.width	= 640,
-	.height = 496,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R,
-			     SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B),
+	.width		    = 640,
+	.height		    = 496,
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R, SSTVENC_CSO_CH_G,
+	    SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x72,
     },
     {
@@ -342,11 +342,11 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	= {SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P7_TIMEUNIT),
 	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P7_TIMEUNIT),
 	   SSTVENC_PASOKON_SCAN(SSTVENC_PASOKON_P7_TIMEUNIT)},
-	.width	= 640,
-	.height = 496,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R,
-			     SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B),
+	.width		    = 640,
+	.height		    = 496,
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R, SSTVENC_CSO_CH_G,
+	    SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x73,
     },
     /* Wraase SC-2 modes */
@@ -363,9 +363,9 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.scanline_period_ns = {155985000, 155985000, 155985000},
 	.width		    = 320,
 	.height		    = 256,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R,
-			     SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B),
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R, SSTVENC_CSO_CH_G,
+	    SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x3f,
     },
     {
@@ -380,9 +380,9 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	.scanline_period_ns = {235000000, 235000000, 235000000},
 	.width		    = 320,
 	.height		    = 256,
-	.colour_space_order
-	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R,
-			     SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B),
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R, SSTVENC_CSO_CH_G,
+	    SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x37,
     },
 };
@@ -675,8 +675,10 @@ static void sstvenc_encoder_start_vis(struct sstvenc_encoder* const enc) {
 #define SSTVENC_ENCODER_SCAN_SEGMENT_CH1	(3)
 #define SSTVENC_ENCODER_SCAN_SEGMENT_GAP12	(4)
 #define SSTVENC_ENCODER_SCAN_SEGMENT_CH2	(5)
-#define SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH	(6)
-#define SSTVENC_ENCODER_SCAN_SEGMENT_NEXT	(7)
+#define SSTVENC_ENCODER_SCAN_SEGMENT_GAP23	(6)
+#define SSTVENC_ENCODER_SCAN_SEGMENT_CH3	(7)
+#define SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH	(8)
+#define SSTVENC_ENCODER_SCAN_SEGMENT_NEXT	(9)
 
 static void sstvenc_encoder_next_scan_seg(struct sstvenc_encoder* const enc,
 					  uint8_t next_segment) {
@@ -796,22 +798,33 @@ static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
 			& SSTVENC_CSO_MASK_MODE) {
 		case SSTVENC_CSO_MODE_MONO:
 			/* Next we do the back porch */
-			enc->vars.scan.segment
-			    = SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH;
+			sstvenc_encoder_next_scan_seg(
+			    enc, SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH);
 			break;
 		default:
 			switch (ch) {
 			case 0:
-				enc->vars.scan.segment
-				    = SSTVENC_ENCODER_SCAN_SEGMENT_GAP01;
+				sstvenc_encoder_next_scan_seg(
+				    enc, SSTVENC_ENCODER_SCAN_SEGMENT_GAP01);
 				break;
 			case 1:
-				enc->vars.scan.segment
-				    = SSTVENC_ENCODER_SCAN_SEGMENT_GAP12;
+				sstvenc_encoder_next_scan_seg(
+				    enc, SSTVENC_ENCODER_SCAN_SEGMENT_GAP12);
 				break;
+			case 2:
+				if (SSTVENC_MODE_GET_CH(
+					3, enc->mode->colour_space_order)
+				    != SSTVENC_CSO_CH_NONE) {
+					sstvenc_encoder_next_scan_seg(
+					    enc,
+					    SSTVENC_ENCODER_SCAN_SEGMENT_GAP23);
+					break;
+				}
+				/* Fall-thru */
 			default:
-				enc->vars.scan.segment
-				    = SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH;
+				sstvenc_encoder_next_scan_seg(
+				    enc,
+				    SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH);
 				break;
 			}
 		}
@@ -862,6 +875,13 @@ static void sstvenc_encoder_do_scan(struct sstvenc_encoder* const enc) {
 		break;
 	case SSTVENC_ENCODER_SCAN_SEGMENT_CH2:
 		sstvenc_encoder_do_scan_channel(enc, 2);
+		break;
+	case SSTVENC_ENCODER_SCAN_SEGMENT_GAP23:
+		sstvenc_encoder_do_scan_seq(enc, enc->mode->gap23,
+					    SSTVENC_ENCODER_SCAN_SEGMENT_CH3);
+		break;
+	case SSTVENC_ENCODER_SCAN_SEGMENT_CH3:
+		sstvenc_encoder_do_scan_channel(enc, 3);
 		break;
 	case SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH:
 		sstvenc_encoder_do_scan_seq(

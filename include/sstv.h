@@ -33,11 +33,11 @@
  *
  * For flexibility, a bitmap has been defined using a `uint16_t`.
  */
-#define SSTVENC_CSO_BIT_MODE	       (9)
+#define SSTVENC_CSO_BIT_MODE	       (12)
 #define SSTVENC_CSO_BIT_C(n)	       ((n) * 3)
 
 /*! Bit mask for the colour space mode bits */
-#define SSTVENC_CSO_MASK_MODE	       (0177000)
+#define SSTVENC_CSO_MASK_MODE	       (0170000)
 
 /*! Bit mask for the Nth colour channel */
 #define SSTVENC_CSO_MASK_C(n)	       (07 << ((n) * 3))
@@ -51,6 +51,15 @@
 /*! SSTV mode is colour using the YUV (aka YCrCb) colourspace */
 #define SSTVENC_CSO_MODE_YUV	       (2 << SSTVENC_CSO_BIT_MODE)
 
+/*!
+ * YUV colour space averaged over two rows.  Used in PD modes:
+ *
+ * - Y is the lumance on the even row
+ * - U and V are averaged over both rows
+ * - Y2 is the luminance of the odd row.
+ */
+#define SSTVENC_CSO_MODE_YUV2	       (3 << SSTVENC_CSO_BIT_MODE)
+
 #define SSTVENC_CSO_CH_NONE	       (0) /*!< Channel not used */
 #define SSTVENC_CSO_CH_Y	       (1) /*!< Y channel (luminance) */
 #define SSTVENC_CSO_CH_U	       (2) /*!< U or Cr channel (Y - red) */
@@ -58,15 +67,17 @@
 #define SSTVENC_CSO_CH_R	       (4) /*!< R channel (red) */
 #define SSTVENC_CSO_CH_G	       (5) /*!< G channel (green) */
 #define SSTVENC_CSO_CH_B	       (6) /*!< B channel (blue) */
+#define SSTVENC_CSO_CH_Y2	       (7) /*!< Y channel of next row */
 
 #define SSTVENC_MODE_GET_CH(n, mode)                                         \
 	(((mode) & SSTVENC_CSO_MASK_C(n)) >> SSTVENC_CSO_BIT_C(n))
 
-#define SSTVENC_MODE_ORDER(cs, c0, c1, c2)                                   \
+#define SSTVENC_MODE_ORDER(cs, c0, c1, c2, c3)                               \
 	(((cs) & SSTVENC_CSO_MASK_MODE)                                      \
 	 | (((c0) << SSTVENC_CSO_BIT_C(0)) & SSTVENC_CSO_MASK_C(0))          \
 	 | (((c1) << SSTVENC_CSO_BIT_C(1)) & SSTVENC_CSO_MASK_C(1))          \
-	 | (((c2) << SSTVENC_CSO_BIT_C(2)) & SSTVENC_CSO_MASK_C(2)))
+	 | (((c2) << SSTVENC_CSO_BIT_C(2)) & SSTVENC_CSO_MASK_C(2))          \
+	 | (((c2) << SSTVENC_CSO_BIT_C(3)) & SSTVENC_CSO_MASK_C(3)))
 
 /*!
  * @}
@@ -110,6 +121,11 @@ struct sstvenc_mode {
 	 */
 	const struct sstvenc_encoder_pulse* gap12;
 	/*!
+	 * Sync pulses between channel 2 and channel 3.  May be NULL if
+	 * there are no pulses between channels 2 and 3.
+	 */
+	const struct sstvenc_encoder_pulse* gap23;
+	/*!
 	 * Back-porch sync pulses after channel 2 (or after channel 0 for
 	 * mono SSTV modes).
 	 */
@@ -122,7 +138,7 @@ struct sstvenc_mode {
 	 * Scanline periods for each of the three channels.  For mono modes,
 	 * only the first is used.
 	 */
-	uint32_t			    scanline_period_ns[3];
+	uint32_t			    scanline_period_ns[4];
 
 	/*!
 	 * Width of the SSTV image sent in pixels.
