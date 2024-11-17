@@ -11,6 +11,7 @@
  */
 
 #include "cw.h"
+#include <assert.h>
 #include <stdint.h>
 
 #define SSTVENC_ENCODER_PHASE_INIT     (0)
@@ -162,6 +163,27 @@ sstvenc_mode_get_fb_sz(const struct sstvenc_mode* const mode) {
 	}
 
 	return sz;
+}
+
+/*!
+ * Fetch the offset into the framebuffer for the given pixel.
+ */
+static inline uint32_t
+sstvenc_get_pixel_posn(const struct sstvenc_mode* const mode, uint16_t x,
+		       uint16_t y) {
+	assert(x < mode->width);
+	assert(y < mode->height);
+
+	uint32_t idx  = y * mode->height;
+	idx	     += x;
+
+	if ((mode->colour_space_order & SSTVENC_CSO_MASK_MODE)
+	    != SSTVENC_CSO_MODE_MONO) {
+		/* These are 3-colour tuples */
+		idx *= 3;
+	}
+
+	return idx;
 }
 
 /*
@@ -359,24 +381,6 @@ void sstvenc_encoder_init(struct sstvenc_encoder* const	      enc,
 			  const char* fsk_id, const double* framebuffer,
 			  double amplitude, double slope_period,
 			  uint32_t sample_rate);
-
-/*!
- * Fetch the offset into the framebuffer for the given pixel.
- */
-static inline uint32_t
-sstvenc_get_pixel_posn(const struct sstvenc_encoder* const enc, uint16_t x,
-		       uint16_t y) {
-	uint32_t idx  = y * enc->mode->height;
-	idx	     += x;
-
-	if ((enc->mode->colour_space_order & SSTVENC_CSO_MASK_MODE)
-	    != SSTVENC_CSO_MODE_MONO) {
-		/* These are 3-colour tuples */
-		idx *= 3;
-	}
-
-	return idx;
-}
 
 /*!
  * Compute the next audio sample from the SSTV encoder.

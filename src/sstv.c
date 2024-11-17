@@ -391,7 +391,8 @@ sstvenc_encoder_start_scan_channel(struct sstvenc_encoder* const enc,
 	sstvenc_encoder_start_tone(
 	    enc, enc->amplitude,
 	    sstvenc_level_freq(
-		enc->framebuffer[sstvenc_get_pixel_posn(enc, enc->vars.scan.x,
+		enc->framebuffer[sstvenc_get_pixel_posn(enc->mode,
+							enc->vars.scan.x,
 							enc->vars.scan.y)
 				 + ch]),
 	    enc->mode->scanline_period[ch] / enc->mode->width);
