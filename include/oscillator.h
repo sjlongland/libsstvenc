@@ -39,8 +39,6 @@
 struct sstvenc_oscillator {
 	/*! The amplitude of the sinusoid: range 0-1.0 */
 	double	 amplitude;
-	/*! Frequency of the sinusoid in Hz: range 0-(sample_rate/2) */
-	double	 frequency;
 	/*! Phase offset in radians */
 	double	 offset;
 	/*! The last computed output of the sinusoid */
@@ -54,7 +52,36 @@ struct sstvenc_oscillator {
 	 * *may* set this to 0.
 	 */
 	uint32_t phase;
+	/*!
+	 * Fixed-point phase increment each iteration.  Use
+	 * @ref sstvenc_osc_set_frequency to adjust this or
+	 * @ref sstvenc_osc_get_frequency to convert back to a frequency in
+	 * Hz.
+	 */
+	uint32_t phase_inc;
 };
+
+/*!
+ * Get the oscillator frequency in Hz.
+ */
+static inline double
+sstvenc_osc_get_frequency(struct sstvenc_oscillator* const osc) {
+	return ((double)(((uint64_t)osc->phase_inc) * osc->sample_rate))
+	       / (2 * M_PI * SSTVENC_OSC_PHASE_FRAC_SCALE);
+}
+
+/*!
+ * Set the oscillator frequency in Hz.
+ */
+static inline void
+sstvenc_osc_set_frequency(struct sstvenc_oscillator* const osc,
+			  double			   frequency) {
+	assert(frequency >= 0);
+	assert(frequency < (osc->sample_rate / 2));
+
+	osc->phase_inc = (2 * M_PI * frequency * SSTVENC_OSC_PHASE_FRAC_SCALE)
+			 / osc->sample_rate;
+}
 
 /*!
  * Initialise an oscillator with the given amplitude, frequency and phase
@@ -63,15 +90,12 @@ struct sstvenc_oscillator {
 static inline void sstvenc_osc_init(struct sstvenc_oscillator* const osc,
 				    double amplitude, double frequency,
 				    double offset, uint32_t sample_rate) {
-	assert(frequency >= 0);
-	assert(frequency < (sample_rate / 2));
-
 	osc->amplitude	 = amplitude;
-	osc->frequency	 = frequency;
 	osc->offset	 = offset;
 	osc->output	 = 0.0;
 	osc->sample_rate = sample_rate;
 	osc->phase	 = 0;
+	sstvenc_osc_set_frequency(osc, frequency);
 }
 
 /*!
@@ -87,9 +111,7 @@ static inline void sstvenc_osc_compute(struct sstvenc_oscillator* const osc) {
 				       / SSTVENC_OSC_PHASE_FRAC_SCALE));
 
 		/* Increment phase, modulo 2Pi */
-		osc->phase += (2 * M_PI * (osc->frequency)
-			       * SSTVENC_OSC_PHASE_FRAC_SCALE)
-			      / osc->sample_rate;
+		osc->phase += osc->phase_inc;
 		osc->phase
 		    %= (uint32_t)(2 * M_PI * SSTVENC_OSC_PHASE_FRAC_SCALE);
 	}
