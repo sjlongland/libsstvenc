@@ -42,8 +42,27 @@ const static struct sstvenc_encoder_pulse sstvenc_sstv_robotbw_fp[] = {
     {.frequency = 0, .duration_us = 0},
 };
 
+/* SSTV mode specifications -- Wraase SC-2 modes */
+const static struct sstvenc_encoder_pulse sstvenc_sstv_wraasesc2_180_fp[] = {
+    {.frequency = SSTVENC_FREQ_SYNC, .duration_us = 5522 /* .5 */},
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_us = 500},
+    {.frequency = 0, .duration_us = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_wraasesc2_120_fp[] = {
+    {.frequency = SSTVENC_FREQ_SYNC, .duration_us = 5522 /* .5 */},
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_us = 1000},
+    {.frequency = 0, .duration_us = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_wraasesc2_sep[] = {
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_us = 500},
+    {.frequency = 0, .duration_us = 0},
+};
+
 /* SSTV mode specifications -- the table */
 const static struct sstvenc_mode sstvenc_sstv_modes[] = {
+    /* Robot B/W modes */
     {
 	.description	    = "Robot 8 B/W",
 	.name		    = "R8BW",
@@ -94,6 +113,42 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
 			     SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x0a,
+    },
+    /* Wraase SC-2 modes */
+    {
+	.description	    = "Wraase SC-2 120",
+	.name		    = "W2120",
+	.initseq	    = NULL,
+	.frontporch	    = sstvenc_sstv_wraasesc2_120_fp,
+	/* Separator is needed for W2120, but not W2180 in QSSTV and slowrx */
+	.gap01		    = sstvenc_sstv_wraasesc2_sep,
+	.gap12		    = sstvenc_sstv_wraasesc2_sep,
+	.backporch	    = NULL,
+	.finalseq	    = NULL,
+	.scanline_period_us = {155985, 155985, 155985},
+	.width		    = 320,
+	.height		    = 256,
+	.colour_space_order
+	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R,
+			     SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B),
+	.vis_code = 0x3f,
+    },
+    {
+	.description	    = "Wraase SC-2 180",
+	.name		    = "W2180",
+	.initseq	    = NULL,
+	.frontporch	    = sstvenc_sstv_wraasesc2_180_fp,
+	.gap01		    = NULL,
+	.gap12		    = NULL,
+	.backporch	    = NULL,
+	.finalseq	    = NULL,
+	.scanline_period_us = {235000, 235000, 235000},
+	.width		    = 320,
+	.height		    = 256,
+	.colour_space_order
+	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R,
+			     SSTVENC_CSO_CH_G, SSTVENC_CSO_CH_B),
+	.vis_code = 0x37,
     },
 };
 
