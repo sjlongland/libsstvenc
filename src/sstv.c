@@ -890,7 +890,13 @@ static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
 static void sstvenc_encoder_do_next_line(struct sstvenc_encoder* const enc) {
 	sstvenc_encoder_next_scan_seg(
 	    enc, SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH);
-	enc->vars.scan.y++;
+	switch (enc->mode->colour_space_order & SSTVENC_CSO_MASK_MODE) {
+	case SSTVENC_CSO_MODE_YUV2:
+		enc->vars.scan.y += 2;
+		break;
+	default:
+		enc->vars.scan.y++;
+	}
 	sstvenc_encoder_do_scan(enc);
 }
 
