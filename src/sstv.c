@@ -126,6 +126,11 @@ void sstvenc_encoder_init(struct sstvenc_encoder* const	      enc,
 	enc->phase	  = SSTVENC_ENCODER_PHASE_INIT;
 }
 
+static void sstvenc_encoder_new_phase(struct sstvenc_encoder* const enc,
+				      uint8_t			    phase) {
+	enc->phase = phase;
+}
+
 static void sstvenc_encoder_start_preamble(struct sstvenc_encoder* const enc);
 static void sstvenc_encoder_do_preamble(struct sstvenc_encoder* const enc);
 static void sstvenc_encoder_start_vis(struct sstvenc_encoder* const enc);
@@ -147,9 +152,9 @@ static void sstvenc_encoder_start_tone(struct sstvenc_encoder* const enc,
 				       double amplitude, double frequency,
 				       double duration) {
 	assert(enc->tone_state == SSTVENC_ENCODER_TONE_GEN_INIT);
+	enc->cw.osc.amplitude = amplitude;
+	enc->cw.osc.frequency = frequency;
 	enc->sample_rem = ((uint16_t)((duration * enc->sample_rate) + 0.5));
-	sstvenc_osc_init(&(enc->cw.osc), amplitude, frequency, 0.0,
-			 enc->sample_rate);
 	enc->tone_state = SSTVENC_ENCODER_TONE_GEN_RUN;
 }
 
@@ -169,7 +174,6 @@ static void sstvenc_encoder_compute_tone(struct sstvenc_encoder* const enc) {
 static void sstvenc_encoder_finish_tone(struct sstvenc_encoder* const enc) {
 	assert(enc->tone_state == SSTVENC_ENCODER_TONE_GEN_DONE);
 	assert(enc->sample_rem == 0);
-	memset(&(enc->cw), 0, sizeof(struct sstvenc_cw_mod));
 	enc->tone_state = SSTVENC_ENCODER_TONE_GEN_INIT;
 }
 
@@ -238,8 +242,8 @@ static void sstvenc_encoder_do_preamble(struct sstvenc_encoder* const enc) {
 
 static void
 sstvenc_encoder_start_preamble(struct sstvenc_encoder* const enc) {
-	enc->phase		      = SSTVENC_ENCODER_PHASE_PREAMBLE;
-	enc->vars.preamble.step	      = 0;
+	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_PREAMBLE);
+	enc->vars.preamble.step = 0;
 	sstvenc_encoder_do_preamble(enc);
 }
 
@@ -336,8 +340,10 @@ static void sstvenc_encoder_do_vis(struct sstvenc_encoder* const enc) {
 }
 
 static void sstvenc_encoder_start_vis(struct sstvenc_encoder* const enc) {
-	enc->phase	  = SSTVENC_ENCODER_PHASE_VIS;
+	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_VIS);
 	enc->vars.vis.bit = 0;
+	sstvenc_osc_init(&(enc->cw.osc), enc->amplitude,
+			 SSTVENC_FREQ_VIS_START, 0.0, enc->sample_rate);
 	sstvenc_encoder_do_vis(enc);
 }
 
@@ -484,7 +490,7 @@ static void sstvenc_encoder_do_scan(struct sstvenc_encoder* const enc) {
 }
 
 static void sstvenc_encoder_start_scan(struct sstvenc_encoder* const enc) {
-	enc->phase	       = SSTVENC_ENCODER_PHASE_SCAN;
+	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_SCAN);
 	enc->vars.scan.x       = 0;
 	enc->vars.scan.y       = 0;
 	enc->vars.scan.segment = 0;
@@ -549,7 +555,7 @@ static void sstvenc_encoder_fsk_load_next(struct sstvenc_encoder* const enc) {
 }
 
 static void sstvenc_encoder_start_fsk(struct sstvenc_encoder* const enc) {
-	enc->phase	      = SSTVENC_ENCODER_PHASE_FSK;
+	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_FSK);
 	enc->vars.fsk.segment = SSTVENC_ENCODER_FSK_SEGMENT_BEGIN;
 	enc->vars.fsk.byte    = 0;
 	enc->vars.fsk.bit     = 0;
@@ -570,7 +576,8 @@ static void sstvenc_encoder_do_fsk(struct sstvenc_encoder* const enc) {
 		if (enc->vars.fsk.segment
 		    >= SSTVENC_ENCODER_FSK_SEGMENT_DONE) {
 			/* This is the end of the FSK ID */
-			enc->phase = SSTVENC_ENCODER_PHASE_DONE;
+			sstvenc_encoder_new_phase(enc,
+						  SSTVENC_ENCODER_PHASE_DONE);
 			return;
 		}
 
@@ -605,7 +612,8 @@ static void sstvenc_encoder_do_fsk(struct sstvenc_encoder* const enc) {
 			break;
 		case SSTVENC_ENCODER_TONE_GEN_DONE:
 			sstvenc_encoder_finish_tone(enc);
-			enc->phase = SSTVENC_ENCODER_PHASE_DONE;
+			sstvenc_encoder_new_phase(enc,
+						  SSTVENC_ENCODER_PHASE_DONE);
 			break;
 		}
 	}
