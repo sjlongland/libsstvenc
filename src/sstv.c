@@ -392,8 +392,9 @@ sstvenc_encoder_start_scan_channel(struct sstvenc_encoder* const enc,
 				   enc->mode->scanline_period_us[ch]);
 }
 
-static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
-					    uint8_t ch) {
+static double
+sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
+			       uint8_t			     ch) {
 	/*
 	 * sample_rem is the number of samples before we hit the end of the
 	 * scan line, thus is the inverse X axis, scaled.
@@ -409,20 +410,27 @@ static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
 	      / enc->mode->scanline_period_us[ch];
 	uint16_t x
 	    = (uint16_t)((enc->mode->width * (1.0 - x_rem_frac)) + 0.5);
+	printf("%s: sample_rem=%u x_rem_frac=%f x=%u\n", __func__,
+	       enc->sample_rem, x_rem_frac, x);
 
 	if (x >= enc->mode->width) {
 		x = enc->mode->width - 1;
 	}
+	return sstvenc_level_freq(
+	    enc->framebuffer[sstvenc_get_pixel_posn(enc->mode, x,
+						    enc->vars.scan.y)
+			     + ch]);
+}
 
+static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
+					    uint8_t ch) {
 	switch (enc->tone_state) {
 	case SSTVENC_ENCODER_TONE_GEN_INIT:
 		sstvenc_encoder_start_scan_channel(enc, ch);
 		/* Fall-thru */
 	case SSTVENC_ENCODER_TONE_GEN_RUN:
-		enc->cw.osc.frequency = sstvenc_level_freq(
-		    enc->framebuffer[sstvenc_get_pixel_posn(enc->mode, x,
-							    enc->vars.scan.y)
-				     + ch]),
+		enc->cw.osc.frequency
+		    = sstvenc_encoder_get_pixel_freq(enc, ch);
 		sstvenc_encoder_compute_tone(enc);
 		break;
 	case SSTVENC_ENCODER_TONE_GEN_DONE:
