@@ -42,6 +42,18 @@ const static struct sstvenc_encoder_pulse sstvenc_sstv_robotbw_fp[] = {
     {.frequency = 0, .duration_ns = 0},
 };
 
+/* SSTV mode specifications -- Martin modes */
+const static struct sstvenc_encoder_pulse sstvenc_sstv_martin_fp[] = {
+    {.frequency = SSTVENC_FREQ_SYNC, .duration_ns = 4862000},
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_ns = 572000},
+    {.frequency = 0, .duration_ns = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_martin_sep[] = {
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_ns = 572000},
+    {.frequency = 0, .duration_ns = 0},
+};
+
 /* SSTV mode specifications -- Wraase SC-2 modes */
 const static struct sstvenc_encoder_pulse sstvenc_sstv_wraasesc2_180_fp[] = {
     {.frequency = SSTVENC_FREQ_SYNC, .duration_ns = 5522500},
@@ -113,6 +125,41 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
 			     SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x0a,
+    },
+    /* Martin modes */
+    {
+	.description	    = "Martin M1",
+	.name		    = "M1",
+	.initseq	    = NULL,
+	.frontporch	    = sstvenc_sstv_martin_fp,
+	.gap01		    = sstvenc_sstv_martin_sep,
+	.gap12		    = sstvenc_sstv_martin_sep,
+	.backporch	    = sstvenc_sstv_martin_sep,
+	.finalseq	    = NULL,
+	.scanline_period_ns = {146432000, 146432000, 146432000},
+	.width		    = 320,
+	.height		    = 256,
+	.colour_space_order
+	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G,
+			     SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_R),
+	.vis_code = 0x2c,
+    },
+    {
+	.description	    = "Martin M2",
+	.name		    = "M2",
+	.initseq	    = NULL,
+	.frontporch	    = sstvenc_sstv_martin_fp,
+	.gap01		    = sstvenc_sstv_martin_sep,
+	.gap12		    = sstvenc_sstv_martin_sep,
+	.backporch	    = sstvenc_sstv_martin_sep,
+	.finalseq	    = NULL,
+	.scanline_period_ns = {73216000, 73216000, 73216000},
+	.width		    = 320,
+	.height		    = 256,
+	.colour_space_order
+	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_G,
+			     SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_R),
+	.vis_code = 0x28,
     },
     /* Wraase SC-2 modes */
     {
