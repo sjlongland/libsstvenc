@@ -17,9 +17,11 @@
 #define SSTVENC_ENCODER_PHASE_INIT     (0)
 #define SSTVENC_ENCODER_PHASE_PREAMBLE (1)
 #define SSTVENC_ENCODER_PHASE_VIS      (2)
-#define SSTVENC_ENCODER_PHASE_SCAN     (3)
-#define SSTVENC_ENCODER_PHASE_FSK      (4)
-#define SSTVENC_ENCODER_PHASE_DONE     (5)
+#define SSTVENC_ENCODER_PHASE_INITSEQ  (3)
+#define SSTVENC_ENCODER_PHASE_SCAN     (4)
+#define SSTVENC_ENCODER_PHASE_FINALSEQ (5)
+#define SSTVENC_ENCODER_PHASE_FSK      (6)
+#define SSTVENC_ENCODER_PHASE_DONE     (7)
 
 /*!
  * @defgroup sstv_colour_space_order Colour Space/Order bitmap
@@ -88,6 +90,10 @@ struct sstvenc_mode {
 	/*! Short-hand name of a SSTV mode, e.g. M1 */
 	const char*			    name;
 	/*!
+	 * Initial sequence pulses prior to first scan line.
+	 */
+	const struct sstvenc_encoder_pulse* initseq;
+	/*!
 	 * Front-porch sync pulses that happen before channel 0 is sent.  An
 	 * array terminated with a 0Hz 0sec "pulse".  May be NULL if there are
 	 * no start-of-scan pulses before channel 0.
@@ -108,6 +114,10 @@ struct sstvenc_mode {
 	 * mono SSTV modes).
 	 */
 	const struct sstvenc_encoder_pulse* backporch;
+	/*!
+	 * Final sequence pulses following last scan line.
+	 */
+	const struct sstvenc_encoder_pulse* finalseq;
 	/*!
 	 * Scanline periods for each of the three channels.  For mono modes,
 	 * only the first is used.
@@ -315,6 +325,13 @@ struct sstvenc_encoder {
 			uint8_t bit;
 		} vis;
 
+		struct sstvenc_encoder_phase_initseq_data {
+			/*!
+			 * Initial tone sequence index
+			 */
+			uint8_t idx;
+		} initseq;
+
 		struct sstvenc_encoder_phase_scan_data {
 			/*!
 			 * The current image Y position being scanned
@@ -331,6 +348,13 @@ struct sstvenc_encoder {
 			 */
 			uint8_t	 idx;
 		} scan;
+
+		struct sstvenc_encoder_phase_finalseq_data {
+			/*!
+			 * Final tone sequence index
+			 */
+			uint8_t idx;
+		} finalseq;
 
 		struct sstvenc_encoder_phase_fsk_data {
 			/*!
