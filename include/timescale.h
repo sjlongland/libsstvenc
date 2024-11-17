@@ -23,6 +23,7 @@
 #define SSTVENC_TS_UNIT_SECONDS	     (0)
 #define SSTVENC_TS_UNIT_MILLISECONDS (1)
 #define SSTVENC_TS_UNIT_MICROSECONDS (2)
+#define SSTVENC_TS_UNIT_NANOSECONDS  (3)
 
 static inline uint64_t sstvenc_ts_unit_scale(uint8_t unit) {
 	switch (unit) {
@@ -32,6 +33,8 @@ static inline uint64_t sstvenc_ts_unit_scale(uint8_t unit) {
 		return 1000;
 	case SSTVENC_TS_UNIT_MICROSECONDS:
 		return 1000000;
+	case SSTVENC_TS_UNIT_NANOSECONDS:
+		return 1000000000;
 	default:
 		assert(0);
 	}
