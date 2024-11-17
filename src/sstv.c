@@ -53,7 +53,7 @@ const static struct sstvenc_mode sstvenc_sstv_modes[SSTVENC_SSTV_MODES_NUM]
 	    .gap01		= NULL,
 	    .gap12		= NULL,
 	    .backporch		= NULL,
-	    .scanline_period_us = {66900, 0, 0},
+	    .scanline_period_us = {59900, 0, 0},
 	    .width		= 160,
 	    .height		= 120,
 	    .colour_space_order
