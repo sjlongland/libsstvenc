@@ -408,18 +408,11 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 	    = sstvenc_ts_samples_to_unit(enc->sample_rem, enc->sample_rate,
 					 SSTVENC_TS_UNIT_MICROSECONDS)
 	      / enc->mode->scanline_period_us[ch];
-	uint16_t x
-	    = (uint16_t)((enc->mode->width * (1.0 - x_rem_frac)) + 0.5);
-	printf("%s: sample_rem=%u x_rem_frac=%f x=%u\n", __func__,
-	       enc->sample_rem, x_rem_frac, x);
+	uint16_t x = (uint16_t)((enc->mode->width - 1) * (1.0 - x_rem_frac));
 
-	if (x >= enc->mode->width) {
-		x = enc->mode->width - 1;
-	}
-	return sstvenc_level_freq(
-	    enc->framebuffer[sstvenc_get_pixel_posn(enc->mode, x,
-						    enc->vars.scan.y)
-			     + ch]);
+	uint32_t idx = sstvenc_get_pixel_posn(enc->mode, x, enc->vars.scan.y);
+
+	return sstvenc_level_freq(enc->framebuffer[idx + ch]);
 }
 
 static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
