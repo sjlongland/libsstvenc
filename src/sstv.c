@@ -781,11 +781,7 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 	case SSTVENC_CSO_MODE_YUV2: {
 		const uint16_t row_length = 3 * enc->mode->width;
 		uint16_t       y	  = enc->vars.scan.y;
-		if (enc->vars.scan.y % 2) {
-			/* We're on an odd row */
-			y--;
-			idx -= row_length;
-		}
+		assert(!(enc->vars.scan.y % 2));
 
 		switch (
 		    SSTVENC_MODE_GET_CH(ch, enc->mode->colour_space_order)) {
@@ -808,6 +804,7 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 		default:
 			value = 0.0;
 		}
+		break;
 	}
 	default:
 		switch (
