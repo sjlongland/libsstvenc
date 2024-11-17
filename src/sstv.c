@@ -43,38 +43,37 @@ const static struct sstvenc_encoder_pulse sstvenc_sstv_robotbw_fp[] = {
 };
 
 /* SSTV mode specifications -- the table */
-const static struct sstvenc_mode sstvenc_sstv_modes[]
-    = {
-	{
-	    .description	= "Robot 8 B/W",
-	    .name		= "R8BW",
-	    .frontporch		= sstvenc_sstv_robotbw_fp,
-	    .gap01		= NULL,
-	    .gap12		= NULL,
-	    .backporch		= NULL,
-	    .scanline_period_us = {59900, 0, 0},
-	    .width		= 160,
-	    .height		= 120,
-	    .colour_space_order
-	    = SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
-				 SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
-	    .vis_code = 0x02,
-	},
-	{
-	    .description	= "Robot 24 B/W",
-	    .name		= "R24BW",
-	    .frontporch		= sstvenc_sstv_robotbw_fp,
-	    .gap01		= NULL,
-	    .gap12		= NULL,
-	    .backporch		= NULL,
-	    .scanline_period_us = {93000, 0, 0},
-	    .width		= 320,
-	    .height		= 240,
-	    .colour_space_order
-	    = SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
-				 SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
-	    .vis_code = 0x0a,
-	},
+const static struct sstvenc_mode sstvenc_sstv_modes[] = {
+    {
+	.description	    = "Robot 8 B/W",
+	.name		    = "R8BW",
+	.frontporch	    = sstvenc_sstv_robotbw_fp,
+	.gap01		    = NULL,
+	.gap12		    = NULL,
+	.backporch	    = NULL,
+	.scanline_period_us = {59900, 0, 0},
+	.width		    = 160,
+	.height		    = 120,
+	.colour_space_order
+	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
+			     SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
+	.vis_code = 0x02,
+    },
+    {
+	.description	    = "Robot 24 B/W",
+	.name		    = "R24BW",
+	.frontporch	    = sstvenc_sstv_robotbw_fp,
+	.gap01		    = NULL,
+	.gap12		    = NULL,
+	.backporch	    = NULL,
+	.scanline_period_us = {93000, 0, 0},
+	.width		    = 320,
+	.height		    = 240,
+	.colour_space_order
+	= SSTVENC_MODE_ORDER(SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y,
+			     SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
+	.vis_code = 0x0a,
+    },
 };
 
 uint8_t sstvenc_get_mode_count() {
@@ -357,11 +356,10 @@ static void sstvenc_encoder_start_vis(struct sstvenc_encoder* const enc) {
 #define SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH	(6)
 #define SSTVENC_ENCODER_SCAN_SEGMENT_NEXT	(7)
 
-static void
-sstvenc_encoder_next_scan_seg(struct sstvenc_encoder* const	enc,
-			    uint8_t next_segment) {
+static void sstvenc_encoder_next_scan_seg(struct sstvenc_encoder* const enc,
+					  uint8_t next_segment) {
 	enc->vars.scan.segment = next_segment;
-	enc->vars.scan.idx = 0;
+	enc->vars.scan.idx     = 0;
 }
 
 static void
@@ -415,7 +413,7 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 	    = sstvenc_ts_samples_to_unit(enc->sample_rem, enc->sample_rate,
 					 SSTVENC_TS_UNIT_MICROSECONDS)
 	      / enc->mode->scanline_period_us[ch];
-	uint16_t x = (uint16_t)(enc->mode->width * (1.0 - x_rem_frac));
+	uint16_t x   = (uint16_t)(enc->mode->width * (1.0 - x_rem_frac));
 
 	uint32_t idx = sstvenc_get_pixel_posn(enc->mode, x, enc->vars.scan.y);
 
@@ -467,7 +465,8 @@ static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
 }
 
 static void sstvenc_encoder_do_next_line(struct sstvenc_encoder* const enc) {
-	sstvenc_encoder_next_scan_seg(enc, SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH);
+	sstvenc_encoder_next_scan_seg(
+	    enc, SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH);
 	enc->vars.scan.y++;
 	sstvenc_encoder_do_scan(enc);
 }
@@ -514,8 +513,9 @@ static void sstvenc_encoder_do_scan(struct sstvenc_encoder* const enc) {
 
 static void sstvenc_encoder_start_scan(struct sstvenc_encoder* const enc) {
 	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_SCAN);
-	enc->vars.scan.y       = 0;
-	sstvenc_encoder_next_scan_seg(enc, SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH);
+	enc->vars.scan.y = 0;
+	sstvenc_encoder_next_scan_seg(
+	    enc, SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH);
 	sstvenc_encoder_do_scan(enc);
 }
 
