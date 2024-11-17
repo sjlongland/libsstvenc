@@ -775,8 +775,61 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 	uint16_t x   = (uint16_t)(enc->mode->width * (1.0 - x_rem_frac));
 
 	uint32_t idx = sstvenc_get_pixel_posn(enc->mode, x, enc->vars.scan.y);
+	double	 value;
 
-	return sstvenc_level_freq(enc->framebuffer[idx + ch]);
+	switch (enc->mode->colour_space_order & SSTVENC_CSO_MASK_MODE) {
+	case SSTVENC_CSO_MODE_YUV2: {
+		const uint16_t row_length = 3 * enc->mode->width;
+		uint16_t       y	  = enc->vars.scan.y;
+		if (enc->vars.scan.y % 2) {
+			/* We're on an odd row */
+			y--;
+			idx -= row_length;
+		}
+
+		switch (
+		    SSTVENC_MODE_GET_CH(ch, enc->mode->colour_space_order)) {
+		case SSTVENC_CSO_CH_Y:
+			value = enc->framebuffer[idx];
+			break;
+		case SSTVENC_CSO_CH_Y2:
+			value = enc->framebuffer[idx + row_length];
+			break;
+		case SSTVENC_CSO_CH_U:
+			value = (enc->framebuffer[idx + 1]
+				 + enc->framebuffer[idx + row_length + 1])
+				/ 2.0;
+			break;
+		case SSTVENC_CSO_CH_V:
+			value = (enc->framebuffer[idx + 2]
+				 + enc->framebuffer[idx + row_length + 2])
+				/ 2.0;
+			break;
+		default:
+			value = 0.0;
+		}
+	}
+	default:
+		switch (
+		    SSTVENC_MODE_GET_CH(ch, enc->mode->colour_space_order)) {
+		case SSTVENC_CSO_CH_Y:
+		case SSTVENC_CSO_CH_R:
+			value = enc->framebuffer[idx];
+			break;
+		case SSTVENC_CSO_CH_U:
+		case SSTVENC_CSO_CH_G:
+			value = enc->framebuffer[idx + 1];
+			break;
+		case SSTVENC_CSO_CH_V:
+		case SSTVENC_CSO_CH_B:
+			value = enc->framebuffer[idx + 2];
+			break;
+		default:
+			value = 0.0;
+		}
+	}
+
+	return sstvenc_level_freq(value);
 }
 
 static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
