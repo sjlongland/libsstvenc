@@ -42,6 +42,37 @@ const static struct sstvenc_encoder_pulse sstvenc_sstv_robotbw_fp[] = {
     {.frequency = 0, .duration_ns = 0},
 };
 
+/* SSTV mode specifications -- Robot colour modes */
+const static struct sstvenc_encoder_pulse sstvenc_sstv_robot36_fp[] = {
+    {.frequency = SSTVENC_FREQ_SYNC, .duration_ns = 9000000},
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_ns = 3000000},
+    {.frequency = 0, .duration_ns = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_robot36_gap[] = {
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_ns = 4500000},
+    {.frequency = SSTVENC_FREQ_VIS_START, .duration_ns = 1500000},
+    {.frequency = 0, .duration_ns = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_robot72_fp[] = {
+    {.frequency = SSTVENC_FREQ_SYNC, .duration_ns = 9000000},
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_ns = 3000000},
+    {.frequency = 0, .duration_ns = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_robot72_gap01[] = {
+    {.frequency = SSTVENC_FREQ_BLACK, .duration_ns = 4500000},
+    {.frequency = SSTVENC_FREQ_VIS_START, .duration_ns = 1500000},
+    {.frequency = 0, .duration_ns = 0},
+};
+
+const static struct sstvenc_encoder_pulse sstvenc_sstv_robot72_gap12[] = {
+    {.frequency = SSTVENC_FREQ_WHITE, .duration_ns = 4500000},
+    {.frequency = SSTVENC_FREQ_VIS_START, .duration_ns = 1500000},
+    {.frequency = 0, .duration_ns = 0},
+};
+
 /* SSTV mode specifications -- Scottie modes */
 const static struct sstvenc_encoder_pulse sstvenc_sstv_scottie_fp[] = {
     {.frequency = SSTVENC_FREQ_BLACK, .duration_ns = 1500000},
@@ -207,6 +238,43 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	    SSTVENC_CSO_MODE_MONO, SSTVENC_CSO_CH_Y, SSTVENC_CSO_CH_NONE,
 	    SSTVENC_CSO_CH_NONE, SSTVENC_CSO_CH_NONE),
 	.vis_code = 0x0a,
+    },
+    /* Robot colour modes */
+    {
+	.description	    = "Robot 36",
+	.name		    = "R36",
+	.initseq	    = NULL,
+	.frontporch	    = sstvenc_sstv_robot36_fp,
+	.gap01		    = sstvenc_sstv_robot36_gap,
+	.gap12		    = sstvenc_sstv_robot36_fp,
+	.gap23		    = sstvenc_sstv_robot36_gap,
+	.backporch	    = NULL,
+	.finalseq	    = NULL,
+	.scanline_period_ns = {88000000, 44000000, 88000000, 44000000},
+	.width		    = 320,
+	.height		    = 240,
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_YUV2, SSTVENC_CSO_CH_Y, SSTVENC_CSO_CH_U,
+	    SSTVENC_CSO_CH_Y2, SSTVENC_CSO_CH_V),
+	.vis_code = 0x08,
+    },
+    {
+	.description	    = "Robot 72",
+	.name		    = "R72",
+	.initseq	    = NULL,
+	.frontporch	    = sstvenc_sstv_robot72_fp,
+	.gap01		    = sstvenc_sstv_robot72_gap01,
+	.gap12		    = sstvenc_sstv_robot72_gap12,
+	.gap23		    = NULL,
+	.backporch	    = NULL,
+	.finalseq	    = NULL,
+	.scanline_period_ns = {138000000, 69000000, 69000000},
+	.width		    = 320,
+	.height		    = 240,
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_YUV, SSTVENC_CSO_CH_Y, SSTVENC_CSO_CH_U,
+	    SSTVENC_CSO_CH_V, SSTVENC_CSO_CH_NONE),
+	.vis_code = 0x0c,
     },
     /* Scottie modes */
     {
