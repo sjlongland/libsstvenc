@@ -327,6 +327,12 @@ struct sstvenc_encoder {
 	/*! Sample rate in Hz */
 	uint32_t			    sample_rate;
 
+	/*!
+	 * Sample index for drift tracking purposes.  Incremented each time
+	 * output is updated.
+	 */
+	uint32_t			    sample_idx;
+
 	/*! Samples remaining for current tone */
 	uint16_t			    sample_rem;
 
