@@ -603,21 +603,22 @@ const struct sstvenc_mode* sstvenc_get_mode_by_name(const char* name) {
 	return NULL;
 }
 
-static double sstvenc_level_freq(double level) {
-	if (level >= 1.0) {
+static double sstvenc_level_freq(uint8_t level) {
+	double flevel = level / ((float)UINT8_MAX);
+	if (flevel >= 1.0) {
 		return SSTVENC_FREQ_WHITE;
-	} else if (level <= 0.0) {
+	} else if (flevel <= 0.0) {
 		return SSTVENC_FREQ_BLACK;
 	} else {
 		return SSTVENC_FREQ_BLACK
-		       + (level * (SSTVENC_FREQ_WHITE - SSTVENC_FREQ_BLACK));
+		       + (flevel * (SSTVENC_FREQ_WHITE - SSTVENC_FREQ_BLACK));
 	}
 }
 
 void sstvenc_encoder_init(struct sstvenc_encoder* const	      enc,
 			  const struct sstvenc_mode*	      mode,
 			  const struct sstvenc_preamble_step* preamble,
-			  const char* fsk_id, const double* framebuffer,
+			  const char* fsk_id, const uint8_t* framebuffer,
 			  double amplitude, double slope_period,
 			  uint32_t sample_rate) {
 	memset(enc, 0, sizeof(struct sstvenc_encoder));
@@ -976,7 +977,7 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 	uint16_t x   = (uint16_t)(enc->mode->width * (1.0 - x_rem_frac));
 
 	uint32_t idx = sstvenc_get_pixel_posn(enc->mode, x, enc->vars.scan.y);
-	double	 value;
+	uint8_t	 value;
 
 	switch (enc->mode->colour_space_order & SSTVENC_CSO_MASK_MODE) {
 	case SSTVENC_CSO_MODE_YUV2: {

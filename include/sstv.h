@@ -180,7 +180,7 @@ const struct sstvenc_mode* sstvenc_get_mode_by_name(const char* name);
  */
 static inline size_t
 sstvenc_mode_get_fb_sz(const struct sstvenc_mode* const mode) {
-	size_t sz = mode->width * mode->height * sizeof(double);
+	size_t sz = mode->width * mode->height * sizeof(uint8_t);
 
 	if ((mode->colour_space_order & SSTVENC_CSO_MASK_MODE)
 	    != SSTVENC_CSO_MODE_MONO) {
@@ -313,7 +313,7 @@ struct sstvenc_encoder {
 	 * etc.  Use @ref SSTVENC_MODE_GET_CH to determine what channel is
 	 * what.
 	 */
-	const double*			    framebuffer;
+	const uint8_t*			    framebuffer;
 
 	/*! Output sample */
 	double				    output;
@@ -423,7 +423,7 @@ struct sstvenc_encoder {
 void sstvenc_encoder_init(struct sstvenc_encoder* const	      enc,
 			  const struct sstvenc_mode*	      mode,
 			  const struct sstvenc_preamble_step* preamble,
-			  const char* fsk_id, const double* framebuffer,
+			  const char* fsk_id, const uint8_t* framebuffer,
 			  double amplitude, double slope_period,
 			  uint32_t sample_rate);
 
