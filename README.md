@@ -24,6 +24,7 @@ implementation in C for use in custom SSTV applications.
 ```c
 #include "gd.h"
 #include "sstv.h"
+#include "yuv.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -44,8 +45,8 @@ int main(int argc, char* argv[]) {
 		colours = 1;
 	}
 
-	double* fb
-	    = malloc(mode->width * mode->height * colours * sizeof(double));
+	uint8_t* fb
+	    = malloc(mode->width * mode->height * colours * sizeof(uint8_t));
 
 	FILE* in = fopen(argv[2], "rb");
 	if (!in) {
@@ -63,37 +64,25 @@ int main(int argc, char* argv[]) {
 		for (uint16_t x = 0; x < mode->width; x++) {
 			int c = gdImageGetTrueColorPixel(im_resized, x, y);
 			uint32_t idx = sstvenc_get_pixel_posn(mode, x, y);
-			double	 pv[colours];
+			uint8_t	 pv[colours];
+			uint8_t r = gdTrueColorGetRed(c);
+			uint8_t g = gdTrueColorGetGreen(c);
+			uint8_t b = gdTrueColorGetBlue(c);
 
 			switch (colourspace) {
 			case SSTVENC_CSO_MODE_MONO:
-				pv[0] = gdTrueColorGetGreen(c) / 255.0;
+				pv[0]	 = sstvenc_yuv_calc_y(r, g, b);
 				break;
 			case SSTVENC_CSO_MODE_RGB:
-				pv[0] = gdTrueColorGetRed(c) / 255.0;
-				pv[1] = gdTrueColorGetGreen(c) / 255.0;
-				pv[2] = gdTrueColorGetBlue(c) / 255.0;
+				pv[0] = r;
+				pv[1] = g;
+				pv[2] = b;
 				break;
 			case SSTVENC_CSO_MODE_YUV:
 			case SSTVENC_CSO_MODE_YUV2: {
-				double r = gdTrueColorGetRed(c);
-				double g = gdTrueColorGetGreen(c);
-				double b = gdTrueColorGetBlue(c);
-				pv[0]	 = (16.0
-					    + (.003906
-					       * ((65.738 * r) + (129.057 * g)
-						  + (25.064 * b))))
-					/ 255.0;
-				pv[1] = (128.0
-					 + (.003906
-					    * ((112.439 * r) + (-94.154 * g)
-					       + (-18.285 * b))))
-					/ 255.0;
-				pv[2] = (128.0
-					 + (.003906
-					    * ((-37.945 * r) + (-74.494 * g)
-					       + (112.439 * b))))
-					/ 255.0;
+				pv[0]	 = sstvenc_yuv_calc_y(r, g, b);
+				pv[1]	 = sstvenc_yuv_calc_u(r, g, b);
+				pv[2]	 = sstvenc_yuv_calc_v(r, g, b);
 				break;
 			}
 			default:
