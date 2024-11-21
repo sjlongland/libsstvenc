@@ -1220,6 +1220,7 @@ static void sstvenc_encoder_fsk_load_next(struct sstvenc_encoder* const enc) {
 			enc->vars.fsk.segment
 			    = SSTVENC_ENCODER_FSK_SEGMENT_ID;
 			enc->vars.fsk.seg_sz = strlen(enc->fsk_id);
+			enc->vars.fsk.byte   = 0;
 		}
 		/* Fall-thru */
 	case SSTVENC_ENCODER_FSK_SEGMENT_ID:
@@ -1234,18 +1235,19 @@ static void sstvenc_encoder_fsk_load_next(struct sstvenc_encoder* const enc) {
 			    = SSTVENC_ENCODER_FSK_SEGMENT_TAIL;
 			enc->vars.fsk.seg_sz
 			    = sizeof(sstvenc_encoder_fsk_tail);
+			enc->vars.fsk.byte = 0;
 		}
 		/* Fall-thru */
 	case SSTVENC_ENCODER_FSK_SEGMENT_TAIL:
 		if (enc->vars.fsk.byte < enc->vars.fsk.seg_sz) {
 			enc->vars.fsk.bv
-			    = (uint8_t)(enc->fsk_id[enc->vars.fsk.byte])
-			      - 0x20;
+			    = sstvenc_encoder_fsk_tail[enc->vars.fsk.byte];
 			enc->vars.fsk.bit = 0;
 			break;
 		} else {
 			enc->vars.fsk.segment
 			    = SSTVENC_ENCODER_FSK_SEGMENT_DONE;
+			enc->vars.fsk.byte = 0;
 		}
 	}
 }
