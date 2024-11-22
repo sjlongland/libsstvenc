@@ -207,8 +207,11 @@ int main(int argc, char* argv[]) {
 		/* Compute the next oscillator output sample */
 		sstvenc_osc_compute(&osc);
 
-		/* Scale to 16-bit fixed-point, write out as big-endian */
-		sample = htons(INT16_MAX * osc.output);
+		/* Scale to 16-bit fixed-point */
+		sample = INT16_MAX * osc.output;
+
+		/* Convert to big-endian and write */
+		sample = htons(sample);
 		fwrite(&sample, sizeof(int16_t), 1, out);
 
 		/* Count this sample */
