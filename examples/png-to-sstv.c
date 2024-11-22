@@ -48,9 +48,10 @@ int main(int argc, char* argv[]) {
 				cspace = "YUV";
 				break;
 			}
-			printf("%-8s : %-32s %3d x %3d %4s\n", mode->name,
-			       mode->description, mode->width, mode->height,
-			       cspace);
+			printf("%-8s : %-32s %4d x %4d %-4s %7.3f sec\n",
+			       mode->name, mode->description, mode->width,
+			       mode->height, cspace,
+			       sstvenc_mode_get_txtime(mode) * 1.0e-9);
 
 			idx++;
 			mode = sstvenc_get_mode_by_idx(idx);
