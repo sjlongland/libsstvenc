@@ -667,8 +667,14 @@ static void sstvenc_encoder_start_tone(struct sstvenc_encoder* const enc,
 	assert(enc->tone_state == SSTVENC_ENCODER_TONE_GEN_INIT);
 	enc->cw.osc.amplitude = amplitude;
 	sstvenc_osc_set_frequency(&(enc->cw.osc), frequency);
+
+	/*
+	 * Account for the fact that at sample 0, we switch states.  That
+	 * one sample still needs to be counted though, so we do that by
+	 * adding the offset here.
+	 */
 	enc->sample_rem = sstvenc_ts_unit_to_samples(
-	    duration, enc->sample_rate, time_unit);
+	    duration, enc->sample_rate, time_unit) + 1;
 	enc->tone_state = SSTVENC_ENCODER_TONE_GEN_RUN;
 }
 
