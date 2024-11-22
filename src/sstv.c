@@ -5,33 +5,30 @@
 
 #include "sstv.h"
 #include <assert.h>
-#include <string.h>
 
-#define SSTVENC_FREQ_VIS_BIT1	 (1100.0)
-#define SSTVENC_FREQ_SYNC	 (1200.0)
-#define SSTVENC_FREQ_VIS_BIT0	 (1300.0)
-#define SSTVENC_FREQ_BLACK	 (1500.0)
-#define SSTVENC_FREQ_VIS_START	 (1900.0)
-#define SSTVENC_FREQ_WHITE	 (2300.0)
-#define SSTVENC_FREQ_FSKID_BIT1	 (1900.0)
-#define SSTVENC_FREQ_FSKID_BIT0	 (2100.0)
+#define SSTVENC_FREQ_VIS_BIT1	(1100.0)
+#define SSTVENC_FREQ_SYNC	(1200.0)
+#define SSTVENC_FREQ_VIS_BIT0	(1300.0)
+#define SSTVENC_FREQ_BLACK	(1500.0)
+#define SSTVENC_FREQ_VIS_START	(1900.0)
+#define SSTVENC_FREQ_WHITE	(2300.0)
+#define SSTVENC_FREQ_FSKID_BIT1 (1900.0)
+#define SSTVENC_FREQ_FSKID_BIT0 (2100.0)
 
-#define SSTVENC_PERIOD_FSKID_BIT (22000u)
-
-#define SSTVENC_VIS_BIT_START1	 (0)
-#define SSTVENC_VIS_BIT_START2	 (1)
-#define SSTVENC_VIS_BIT_START3	 (2)
-#define SSTVENC_VIS_BIT_START4	 (3)
-#define SSTVENC_VIS_BIT_DATA1	 (4)
-#define SSTVENC_VIS_BIT_DATA2	 (5)
-#define SSTVENC_VIS_BIT_DATA3	 (6)
-#define SSTVENC_VIS_BIT_DATA4	 (7)
-#define SSTVENC_VIS_BIT_DATA5	 (8)
-#define SSTVENC_VIS_BIT_DATA6	 (9)
-#define SSTVENC_VIS_BIT_DATA7	 (10)
-#define SSTVENC_VIS_BIT_PARITY	 (11)
-#define SSTVENC_VIS_BIT_STOP	 (12)
-#define SSTVENC_VIS_BIT_END	 (13)
+#define SSTVENC_VIS_BIT_START1	(0)
+#define SSTVENC_VIS_BIT_START2	(1)
+#define SSTVENC_VIS_BIT_START3	(2)
+#define SSTVENC_VIS_BIT_START4	(3)
+#define SSTVENC_VIS_BIT_DATA1	(4)
+#define SSTVENC_VIS_BIT_DATA2	(5)
+#define SSTVENC_VIS_BIT_DATA3	(6)
+#define SSTVENC_VIS_BIT_DATA4	(7)
+#define SSTVENC_VIS_BIT_DATA5	(8)
+#define SSTVENC_VIS_BIT_DATA6	(9)
+#define SSTVENC_VIS_BIT_DATA7	(10)
+#define SSTVENC_VIS_BIT_PARITY	(11)
+#define SSTVENC_VIS_BIT_STOP	(12)
+#define SSTVENC_VIS_BIT_END	(13)
 
 /* SSTV mode specifications -- Robot B/W modes */
 const static struct sstvenc_encoder_pulse sstvenc_sstv_robotbw_fp[] = {

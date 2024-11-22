@@ -13,6 +13,7 @@
 #include "cw.h"
 #include <assert.h>
 #include <stdint.h>
+#include <string.h>
 
 #define SSTVENC_ENCODER_PHASE_INIT     (0)
 #define SSTVENC_ENCODER_PHASE_PREAMBLE (1)
@@ -26,6 +27,8 @@
 #define SSTVENC_PERIOD_VIS_START       (300000u)
 #define SSTVENC_PERIOD_VIS_SYNC	       (10000u)
 #define SSTVENC_PERIOD_VIS_BIT	       (30000u)
+
+#define SSTVENC_PERIOD_FSKID_BIT       (22000u)
 
 /*!
  * @defgroup sstv_colour_space_order Colour Space/Order bitmap
@@ -198,7 +201,8 @@ sstvenc_pulseseq_get_txtime(const struct sstvenc_encoder_pulse* seq) {
  * Compute the transmission time of the specified mode in nanoseconds.
  */
 static inline uint64_t
-sstvenc_mode_get_txtime(const struct sstvenc_mode* const mode) {
+sstvenc_mode_get_txtime(const struct sstvenc_mode* const mode,
+			const char*			 fsk_id) {
 	uint64_t txtime	 = 0;
 
 	/* Compute each scan line */
@@ -259,6 +263,18 @@ sstvenc_mode_get_txtime(const struct sstvenc_mode* const mode) {
 	/* Before and after, we have sequences of pulses */
 	txtime += sstvenc_pulseseq_get_txtime(mode->initseq);
 	txtime += sstvenc_pulseseq_get_txtime(mode->finalseq);
+
+	if (fsk_id) {
+		/* Add the duration of the FSK ID */
+		txtime += 1000
+			  * ((SSTVENC_PERIOD_FSKID_BIT
+			      * 12) /* 12 bits preamble */
+			     + (SSTVENC_PERIOD_FSKID_BIT * strlen(fsk_id)
+				* 6) /* 6 bits/char ID */
+			     + (SSTVENC_PERIOD_FSKID_BIT
+				* 6) /* 6 bits trailer */
+			  );
+	}
 
 	return txtime;
 }
