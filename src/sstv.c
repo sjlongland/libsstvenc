@@ -671,7 +671,8 @@ static void sstvenc_encoder_start_tone(struct sstvenc_encoder* const enc,
 	 * adding the offset here.
 	 */
 	enc->sample_rem = sstvenc_ts_unit_to_samples(
-	    duration, enc->sample_rate, time_unit) + 1;
+			      duration, enc->sample_rate, time_unit)
+			  + 1;
 	enc->tone_state = SSTVENC_ENCODER_TONE_GEN_RUN;
 }
 
