@@ -17,4 +17,23 @@ implementation in C for use in custom SSTV applications.
 
 ## Current work:
 
-- Fixing timing issues in the state machine which is throwing the timing off.
+### Fixing timing issues
+
+After recent work, many of the modes are working as they should:
+
+- Robot monochrome modes are basically spot on, save some offset issues which
+  could just be receiver-related.
+- Robot colour modes work, sometimes with an offset and some colour alignment,
+  but again re-playing the same recording seems to generate a "better" image,
+  so this could just be the decoder.
+- Scottie S1 is slanted (forward-lean), worse in `slowrx` than in QSSTV.
+- Scottie S2 is basically fine, save an offset to the right.
+- Scottie DX seems spot on.
+- Martin M1 and M2 are fine, save a small offset.
+- Pasokon P3 is basically spot on, P5 has a small offset, P7 has a slight
+  backward slant.
+- PD modes seem to be fine aside from an offset to the right in some cases.
+- Wraase SC-2: 120 mode has a slight forward-slant, 180 mode has a slight
+  offset.
+
+Still working on issues as I find them, but we're a lot closer now.
