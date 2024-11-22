@@ -22,164 +22,57 @@
 #define SSTVENC_VIS_BIT_STOP   (12)
 #define SSTVENC_VIS_BIT_END    (13)
 
-void sstvenc_encoder_init(struct sstvenc_encoder* const	      enc,
-			  const struct sstvenc_mode*	      mode,
-			  const struct sstvenc_preamble_step* preamble,
-			  const char* fsk_id, const uint8_t* framebuffer,
-			  double amplitude, double slope_period,
-			  uint32_t sample_rate) {
-	memset(enc, 0, sizeof(struct sstvenc_encoder));
-	enc->mode	  = mode;
-	enc->preamble	  = preamble;
-	enc->fsk_id	  = fsk_id;
-	enc->framebuffer  = framebuffer;
-	enc->amplitude	  = amplitude;
-	enc->slope_period = slope_period;
-	enc->sample_rate  = sample_rate;
-	enc->phase	  = SSTVENC_ENCODER_PHASE_INIT;
-}
-
-static void sstvenc_encoder_emit_sample(struct sstvenc_encoder* const enc,
-					double output) {
-	enc->output = output;
-	enc->sample_idx++;
-}
-
 static void sstvenc_encoder_new_phase(struct sstvenc_encoder* const enc,
 				      uint8_t			    phase) {
 	enc->phase = phase;
 }
 
-static void sstvenc_encoder_start_preamble(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_do_preamble(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_start_vis(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_do_vis(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_start_initseq(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_do_initseq(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_start_scan(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_do_scan(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_start_finalseq(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_do_finalseq(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_start_fsk(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_do_fsk(struct sstvenc_encoder* const enc);
-
-static void sstvenc_encoder_preamble_next(struct sstvenc_encoder* const enc) {
-	enc->vars.preamble.step++;
+void sstvenc_encoder_init(struct sstvenc_encoder* const enc,
+			  const struct sstvenc_mode* mode, const char* fsk_id,
+			  const uint8_t* framebuffer) {
+	memset(enc, 0, sizeof(struct sstvenc_encoder));
+	enc->mode	 = mode;
+	enc->fsk_id	 = fsk_id;
+	enc->framebuffer = framebuffer;
+	enc->phase	 = SSTVENC_ENCODER_PHASE_INIT;
 }
 
-#define SSTVENC_ENCODER_TONE_GEN_INIT (0)
-#define SSTVENC_ENCODER_TONE_GEN_RUN  (1)
-#define SSTVENC_ENCODER_TONE_GEN_DONE (2)
-
-static void sstvenc_encoder_start_tone(struct sstvenc_encoder* const enc,
-				       double amplitude, uint32_t frequency,
-				       uint32_t duration, uint8_t time_unit) {
-	assert(enc->tone_state == SSTVENC_ENCODER_TONE_GEN_INIT);
-	enc->cw.osc.amplitude = amplitude;
-	sstvenc_osc_set_frequency(&(enc->cw.osc), frequency);
-
-	/*
-	 * Account for the fact that at sample 0, we switch states.  That
-	 * one sample still needs to be counted though, so we do that by
-	 * adding the offset here.
-	 */
-	enc->sample_rem = sstvenc_ts_unit_to_samples(
-			      duration, enc->sample_rate, time_unit)
-			  + 1;
-	enc->tone_state = SSTVENC_ENCODER_TONE_GEN_RUN;
-}
-
-static void sstvenc_encoder_compute_tone(struct sstvenc_encoder* const enc) {
-	assert(enc->tone_state == SSTVENC_ENCODER_TONE_GEN_RUN);
-	if (enc->sample_rem > 0) {
-		sstvenc_osc_compute(&(enc->cw.osc));
-		sstvenc_encoder_emit_sample(enc, enc->cw.osc.output);
-		enc->sample_rem--;
-	}
-
-	if (!enc->sample_rem) {
-		enc->tone_state = SSTVENC_ENCODER_TONE_GEN_DONE;
+static void sstvenc_encoder_begin_seq(struct sstvenc_encoder* const	  enc,
+				      const struct sstvenc_encoder_pulse* seq,
+				      sstvenc_encoder_callback* on_done) {
+	enc->seq = seq;
+	if ((!enc->seq) || (!enc->seq->duration_ns)) {
+		/* Nothing to do */
+		on_done(enc);
+	} else {
+		enc->seq_done_cb = on_done;
 	}
 }
 
-static void sstvenc_encoder_finish_tone(struct sstvenc_encoder* const enc) {
-	assert(enc->tone_state == SSTVENC_ENCODER_TONE_GEN_DONE);
-	assert(enc->sample_rem == 0);
-	enc->tone_state = SSTVENC_ENCODER_TONE_GEN_INIT;
-}
-
-static void
-sstvenc_encoder_preamble_do_tone(struct sstvenc_encoder* const enc) {
-	const struct sstvenc_preamble_step* step
-	    = &(enc->preamble[enc->vars.preamble.step]);
-	switch (enc->tone_state) {
-	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		sstvenc_encoder_start_tone(
-		    enc, step->amplitude, step->frequency,
-		    step->data.tone.duration, SSTVENC_TS_UNIT_SECONDS);
-		/* Fall-thru */
-	case SSTVENC_ENCODER_TONE_GEN_RUN:
-		sstvenc_encoder_compute_tone(enc);
-		break;
-	case SSTVENC_ENCODER_TONE_GEN_DONE:
-		sstvenc_encoder_finish_tone(enc);
-		sstvenc_encoder_preamble_next(enc);
-		break;
+static const struct sstvenc_encoder_pulse*
+sstvenc_encoder_next_seq_pulse(struct sstvenc_encoder* const enc) {
+	if (enc->seq && enc->seq->duration_ns) {
+		const struct sstvenc_encoder_pulse* pulse = enc->seq;
+		enc->seq++;
+		return pulse;
+	} else if (enc->seq_done_cb) {
+		sstvenc_encoder_callback* seq_done_cb = enc->seq_done_cb;
+		enc->seq_done_cb		      = NULL;
+		enc->seq			      = NULL;
+		seq_done_cb(enc);
+	} else {
+		enc->seq_done_cb = NULL;
+		enc->seq	 = NULL;
 	}
+	return NULL;
 }
 
-static void
-sstvenc_encoder_preamble_do_cw(struct sstvenc_encoder* const enc) {
-	const struct sstvenc_preamble_step* step
-	    = &(enc->preamble[enc->vars.preamble.step]);
-	switch (enc->cw.state) {
-	case SSTVENC_CW_MOD_STATE_INIT:
-		/* We're starting a CW message */
-		sstvenc_cw_init(&(enc->cw), step->data.cw.text,
-				step->amplitude, step->frequency,
-				step->data.cw.dit_period, enc->slope_period,
-				enc->sample_rate, step->data.cw.time_unit);
-		/* Fall-thru */
-	case SSTVENC_CW_MOD_STATE_NEXT_SYM:
-	case SSTVENC_CW_MOD_STATE_MARK:
-	case SSTVENC_CW_MOD_STATE_DITSPACE:
-	case SSTVENC_CW_MOD_STATE_DAHSPACE:
-		sstvenc_cw_compute(&(enc->cw));
-		sstvenc_encoder_emit_sample(enc, enc->cw.output);
-		break;
-	case SSTVENC_CW_MOD_STATE_DONE:
-		sstvenc_ps_reset(&(enc->cw.ps), INFINITY,
-				 SSTVENC_TS_UNIT_SECONDS);
-		sstvenc_encoder_preamble_next(enc);
-		break;
-	}
+static void sstvenc_encoder_begin_vis(struct sstvenc_encoder* const enc) {
+	enc->phase	  = SSTVENC_ENCODER_PHASE_VIS;
+	enc->vars.vis.bit = SSTVENC_VIS_BIT_START1;
 }
 
-static void sstvenc_encoder_do_preamble(struct sstvenc_encoder* const enc) {
-	switch (enc->preamble[enc->vars.preamble.step].type) {
-	case SSTVENC_PREAMBLE_TYPE_END:
-		sstvenc_encoder_start_vis(enc);
-		break;
-	case SSTVENC_PREAMBLE_TYPE_TONE:
-		sstvenc_encoder_preamble_do_tone(enc);
-		break;
-	case SSTVENC_PREAMBLE_TYPE_CW:
-		sstvenc_encoder_preamble_do_cw(enc);
-		break;
-	default:
-		sstvenc_encoder_preamble_next(enc);
-		break;
-	}
-}
-
-static void
-sstvenc_encoder_start_preamble(struct sstvenc_encoder* const enc) {
-	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_PREAMBLE);
-	enc->vars.preamble.step = 0;
-	sstvenc_encoder_do_preamble(enc);
-}
-
-static double
+static uint32_t
 sstvenc_encoder_vis_data_freq(struct sstvenc_encoder* const enc) {
 	uint8_t bit = enc->vars.vis.bit - SSTVENC_VIS_BIT_DATA1;
 	if (enc->mode->vis_code & (1 << bit)) {
@@ -189,7 +82,7 @@ sstvenc_encoder_vis_data_freq(struct sstvenc_encoder* const enc) {
 	}
 }
 
-static double
+static uint32_t
 sstvenc_encoder_vis_parity_freq(struct sstvenc_encoder* const enc) {
 	uint8_t ones = 0;
 	for (uint8_t i = 0; i < 8; i++) {
@@ -205,84 +98,54 @@ sstvenc_encoder_vis_parity_freq(struct sstvenc_encoder* const enc) {
 	}
 }
 
-static void sstvenc_encoder_do_vis(struct sstvenc_encoder* const enc) {
-	double	 frequency;
-	uint32_t duration_us;
-	if (enc->vars.vis.bit >= SSTVENC_VIS_BIT_END) {
-		/* This is the end of the VIS header */
-		if (enc->mode->initseq) {
-			/* There is an initial sequence before the scan */
-			sstvenc_encoder_start_initseq(enc);
-		} else {
-			/* No initial sequence, jump to scan */
-			sstvenc_encoder_start_scan(enc);
-		}
-		return;
-	}
-
-	switch (enc->tone_state) {
-	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		/* Next bit */
-		switch (enc->vars.vis.bit) {
-		case SSTVENC_VIS_BIT_START1:
-			frequency   = SSTVENC_FREQ_VIS_START;
-			duration_us = SSTVENC_PERIOD_VIS_START;
-			break;
-		case SSTVENC_VIS_BIT_START2:
-			frequency   = SSTVENC_FREQ_SYNC;
-			duration_us = SSTVENC_PERIOD_VIS_SYNC;
-			break;
-		case SSTVENC_VIS_BIT_START3:
-			frequency   = SSTVENC_FREQ_VIS_START;
-			duration_us = SSTVENC_PERIOD_VIS_START;
-			break;
-		case SSTVENC_VIS_BIT_START4:
-			frequency   = SSTVENC_FREQ_SYNC;
-			duration_us = SSTVENC_PERIOD_VIS_BIT;
-			break;
-		case SSTVENC_VIS_BIT_DATA1:
-		case SSTVENC_VIS_BIT_DATA2:
-		case SSTVENC_VIS_BIT_DATA3:
-		case SSTVENC_VIS_BIT_DATA4:
-		case SSTVENC_VIS_BIT_DATA5:
-		case SSTVENC_VIS_BIT_DATA6:
-		case SSTVENC_VIS_BIT_DATA7:
-			frequency   = sstvenc_encoder_vis_data_freq(enc);
-			duration_us = SSTVENC_PERIOD_VIS_BIT;
-			break;
-		case SSTVENC_VIS_BIT_PARITY:
-			frequency   = sstvenc_encoder_vis_parity_freq(enc);
-			duration_us = SSTVENC_PERIOD_VIS_BIT;
-			break;
-		case SSTVENC_VIS_BIT_STOP:
-			frequency   = SSTVENC_FREQ_SYNC;
-			duration_us = SSTVENC_PERIOD_VIS_BIT;
-			break;
-		default:
-			frequency   = 0;
-			duration_us = 0;
-			break;
-		}
-		sstvenc_encoder_start_tone(enc, enc->amplitude, frequency,
-					   duration_us,
-					   SSTVENC_TS_UNIT_MICROSECONDS);
-		/* Fall-thru */
-	case SSTVENC_ENCODER_TONE_GEN_RUN:
-		sstvenc_encoder_compute_tone(enc);
-		break;
-	case SSTVENC_ENCODER_TONE_GEN_DONE:
-		sstvenc_encoder_finish_tone(enc);
+static const struct sstvenc_encoder_pulse*
+sstvenc_encoder_next_vis_pulse(struct sstvenc_encoder* const enc) {
+	switch (enc->vars.vis.bit) {
+	case SSTVENC_VIS_BIT_START1:
+		enc->pulse.frequency   = SSTVENC_FREQ_VIS_START;
+		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_START;
 		enc->vars.vis.bit++;
-		break;
+		return &(enc->pulse);
+	case SSTVENC_VIS_BIT_START2:
+		enc->pulse.frequency   = SSTVENC_FREQ_SYNC;
+		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_SYNC;
+		enc->vars.vis.bit++;
+		return &(enc->pulse);
+	case SSTVENC_VIS_BIT_START3:
+		enc->pulse.frequency   = SSTVENC_FREQ_VIS_START;
+		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_START;
+		enc->vars.vis.bit++;
+		return &(enc->pulse);
+	case SSTVENC_VIS_BIT_START4:
+		enc->pulse.frequency   = SSTVENC_FREQ_SYNC;
+		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_BIT;
+		enc->vars.vis.bit++;
+		return &(enc->pulse);
+	case SSTVENC_VIS_BIT_DATA1:
+	case SSTVENC_VIS_BIT_DATA2:
+	case SSTVENC_VIS_BIT_DATA3:
+	case SSTVENC_VIS_BIT_DATA4:
+	case SSTVENC_VIS_BIT_DATA5:
+	case SSTVENC_VIS_BIT_DATA6:
+	case SSTVENC_VIS_BIT_DATA7:
+		enc->pulse.frequency   = sstvenc_encoder_vis_data_freq(enc);
+		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_BIT;
+		enc->vars.vis.bit++;
+		return &(enc->pulse);
+	case SSTVENC_VIS_BIT_PARITY:
+		enc->pulse.frequency   = sstvenc_encoder_vis_parity_freq(enc);
+		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_BIT;
+		enc->vars.vis.bit++;
+		return &(enc->pulse);
+	case SSTVENC_VIS_BIT_STOP:
+		enc->pulse.frequency   = SSTVENC_FREQ_SYNC;
+		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_BIT;
+		enc->vars.vis.bit++;
+		return &(enc->pulse);
+	default:
+		/* This is the end of the VIS header */
+		return NULL;
 	}
-}
-
-static void sstvenc_encoder_start_vis(struct sstvenc_encoder* const enc) {
-	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_VIS);
-	enc->vars.vis.bit = 0;
-	sstvenc_osc_init(&(enc->cw.osc), enc->amplitude,
-			 SSTVENC_FREQ_VIS_START, 0.0, enc->sample_rate);
-	sstvenc_encoder_do_vis(enc);
 }
 
 #define SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH (0)
@@ -296,101 +159,71 @@ static void sstvenc_encoder_start_vis(struct sstvenc_encoder* const enc) {
 #define SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH	(8)
 #define SSTVENC_ENCODER_SCAN_SEGMENT_NEXT	(9)
 
+static void sstvenc_encoder_begin_image(struct sstvenc_encoder* const enc);
+static void sstvenc_encoder_begin_scanline(struct sstvenc_encoder* const enc);
+static void sstvenc_encoder_begin_channel(struct sstvenc_encoder* const enc,
+					  uint8_t segment, uint8_t ch);
 static void sstvenc_encoder_next_scan_seg(struct sstvenc_encoder* const enc,
-					  uint8_t next_segment) {
-	enc->vars.scan.segment = next_segment;
-	enc->vars.scan.idx     = 0;
+					  uint8_t next_segment);
+
+static void
+sstvenc_encoder_on_initseq_done(struct sstvenc_encoder* const enc) {
+	sstvenc_encoder_begin_image(enc);
 }
 
-static void sstvenc_encoder_start_initseq(struct sstvenc_encoder* const enc) {
-	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_INITSEQ);
-	enc->vars.initseq.idx = 0;
-	sstvenc_encoder_do_initseq(enc);
+static void sstvenc_encoder_begin_fsk(struct sstvenc_encoder* const enc);
+static void
+sstvenc_encoder_on_finalseq_done(struct sstvenc_encoder* const enc) {
+	sstvenc_encoder_begin_fsk(enc);
 }
 
-static void sstvenc_encoder_do_initseq(struct sstvenc_encoder* const enc) {
-	const struct sstvenc_encoder_pulse* step
-	    = (enc->mode->initseq)
-		  ? (&enc->mode->initseq[enc->vars.initseq.idx])
-		  : NULL;
-	if (!step || !step->duration_ns) {
-		/* No sequence, move to the image transmission step */
-		sstvenc_encoder_start_scan(enc);
-		return;
-	}
-
-	switch (enc->tone_state) {
-	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		sstvenc_encoder_start_tone(enc, enc->amplitude,
-					   step->frequency, step->duration_ns,
-					   SSTVENC_TS_UNIT_NANOSECONDS);
-		/* Fall-thru */
-	case SSTVENC_ENCODER_TONE_GEN_RUN:
-		sstvenc_encoder_compute_tone(enc);
-		break;
-	case SSTVENC_ENCODER_TONE_GEN_DONE:
-		sstvenc_encoder_finish_tone(enc);
-		enc->vars.initseq.idx++;
-		break;
-	}
+static void sstvenc_encoder_begin_image(struct sstvenc_encoder* const enc) {
+	enc->phase	 = SSTVENC_ENCODER_PHASE_SCAN;
+	enc->vars.scan.y = 0;
+	sstvenc_encoder_begin_scanline(enc);
 }
 
 static void
-sstvenc_encoder_do_scan_seq(struct sstvenc_encoder* const	enc,
-			    const struct sstvenc_encoder_pulse* seq,
-			    uint8_t next_segment) {
-	const struct sstvenc_encoder_pulse* step
-	    = (seq) ? (&seq[enc->vars.scan.idx]) : NULL;
-	if (!step || !step->duration_ns) {
-		/* No sequence, move to the next state */
-		sstvenc_encoder_next_scan_seg(enc, next_segment);
-		sstvenc_encoder_do_scan(enc);
-		return;
-	}
-
-	switch (enc->tone_state) {
-	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		sstvenc_encoder_start_tone(enc, enc->amplitude,
-					   step->frequency, step->duration_ns,
-					   SSTVENC_TS_UNIT_NANOSECONDS);
-		/* Fall-thru */
-	case SSTVENC_ENCODER_TONE_GEN_RUN:
-		sstvenc_encoder_compute_tone(enc);
-		break;
-	case SSTVENC_ENCODER_TONE_GEN_DONE:
-		sstvenc_encoder_finish_tone(enc);
-		enc->vars.scan.idx++;
-		break;
-	}
-}
+sstvenc_encoder_begin_frontporch(struct sstvenc_encoder* const enc);
+static void
+sstvenc_encoder_on_frontporch_done(struct sstvenc_encoder* const enc);
+static void sstvenc_encoder_begin_gap01(struct sstvenc_encoder* const enc);
+static void sstvenc_encoder_on_gap01_done(struct sstvenc_encoder* const enc);
+static void sstvenc_encoder_begin_gap12(struct sstvenc_encoder* const enc);
+static void sstvenc_encoder_on_gap12_done(struct sstvenc_encoder* const enc);
+static void sstvenc_encoder_begin_gap23(struct sstvenc_encoder* const enc);
+static void sstvenc_encoder_on_gap23_done(struct sstvenc_encoder* const enc);
+static void
+sstvenc_encoder_begin_backporch(struct sstvenc_encoder* const enc);
+static void
+sstvenc_encoder_on_backporch_done(struct sstvenc_encoder* const enc);
 
 static void
-sstvenc_encoder_start_scan_channel(struct sstvenc_encoder* const enc,
+sstvenc_encoder_begin_scanline(struct sstvenc_encoder* const enc) {
+	sstvenc_encoder_begin_frontporch(enc);
+}
+
+static void sstvenc_encoder_begin_channel(struct sstvenc_encoder* const enc,
+					  uint8_t segment, uint8_t ch) {
+	sstvenc_encoder_next_scan_seg(enc, segment);
+	enc->vars.scan.x = 0;
+	enc->pulse.duration_ns
+	    = (uint32_t)((((double)enc->mode->scanline_period_ns[ch])
+			  / enc->mode->width)
+			 + 0.5);
+}
+
+static const struct sstvenc_encoder_pulse*
+sstvenc_encoder_next_channel_pulse(struct sstvenc_encoder* const enc,
 				   uint8_t			 ch) {
-	sstvenc_encoder_start_tone(enc, enc->amplitude, 0,
-				   enc->mode->scanline_period_ns[ch],
-				   SSTVENC_TS_UNIT_NANOSECONDS);
-}
 
-static double
-sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
-			       uint8_t			     ch) {
-	/*
-	 * sample_rem is the number of samples before we hit the end of the
-	 * scan line, thus is the inverse X axis, scaled.
-	 *
-	 * scanline_period_ns is in 1ns increments.
-	 * sample_rem is in sample rate units.  If we use
-	 * sstvenc_ts_samples_to_unit, we can convert that to a fraction of
-	 * the scan line, with 0.0 being the right-hand edge.
-	 */
-	double x_rem_frac
-	    = sstvenc_ts_samples_to_unit(enc->sample_rem, enc->sample_rate,
-					 SSTVENC_TS_UNIT_NANOSECONDS)
-	      / enc->mode->scanline_period_ns[ch];
-	uint16_t x   = (uint16_t)(enc->mode->width * (1.0 - x_rem_frac));
+	if (enc->vars.scan.x >= enc->mode->width) {
+		/* End of the channel */
+		return NULL;
+	}
 
-	uint32_t idx = sstvenc_get_pixel_posn(enc->mode, x, enc->vars.scan.y);
+	uint32_t idx = sstvenc_get_pixel_posn(enc->mode, enc->vars.scan.x,
+					      enc->vars.scan.y);
 	uint8_t	 value;
 
 	switch (enc->mode->colour_space_order & SSTVENC_CSO_MASK_MODE) {
@@ -400,6 +233,9 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 
 		switch (
 		    SSTVENC_MODE_GET_CH(ch, enc->mode->colour_space_order)) {
+		case SSTVENC_CSO_CH_NONE:
+			/* Channel not used */
+			return NULL;
 		case SSTVENC_CSO_CH_Y:
 			value = enc->framebuffer[idx];
 			break;
@@ -424,6 +260,9 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 	default:
 		switch (
 		    SSTVENC_MODE_GET_CH(ch, enc->mode->colour_space_order)) {
+		case SSTVENC_CSO_CH_NONE:
+			/* Channel not used */
+			return NULL;
 		case SSTVENC_CSO_CH_Y:
 		case SSTVENC_CSO_CH_R:
 			value = enc->framebuffer[idx];
@@ -441,67 +280,149 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 		}
 	}
 
-	return sstvenc_level_freq(value);
+	enc->pulse.frequency = sstvenc_level_freq(value);
+	enc->vars.scan.x++;
+	return &(enc->pulse);
 }
 
-static void sstvenc_encoder_do_scan_channel(struct sstvenc_encoder* const enc,
-					    uint8_t ch) {
-	switch (enc->tone_state) {
-	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		sstvenc_encoder_start_scan_channel(enc, ch);
-		/* Fall-thru */
-	case SSTVENC_ENCODER_TONE_GEN_RUN:
-		sstvenc_osc_set_frequency(
-		    &(enc->cw.osc), sstvenc_encoder_get_pixel_freq(enc, ch));
-		sstvenc_encoder_compute_tone(enc);
-		break;
-	case SSTVENC_ENCODER_TONE_GEN_DONE:
-		sstvenc_encoder_finish_tone(enc);
-
-		/* We have reached the right-side of the image */
-		switch (enc->mode->colour_space_order
-			& SSTVENC_CSO_MASK_MODE) {
-		case SSTVENC_CSO_MODE_MONO:
-			/* Next we do the back porch */
-			sstvenc_encoder_next_scan_seg(
-			    enc, SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH);
-			break;
-		default:
-			switch (ch) {
-			case 0:
-				sstvenc_encoder_next_scan_seg(
-				    enc, SSTVENC_ENCODER_SCAN_SEGMENT_GAP01);
-				break;
-			case 1:
-				sstvenc_encoder_next_scan_seg(
-				    enc, SSTVENC_ENCODER_SCAN_SEGMENT_GAP12);
-				break;
-			case 2:
-				if (SSTVENC_MODE_GET_CH(
-					3, enc->mode->colour_space_order)
-				    != SSTVENC_CSO_CH_NONE) {
-					sstvenc_encoder_next_scan_seg(
-					    enc,
-					    SSTVENC_ENCODER_SCAN_SEGMENT_GAP23);
-					break;
-				}
-				/* Fall-thru */
-			default:
-				sstvenc_encoder_next_scan_seg(
-				    enc,
-				    SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH);
-				break;
-			}
-		}
-
-		sstvenc_encoder_do_scan(enc);
-		break;
-	}
-}
-
-static void sstvenc_encoder_do_next_line(struct sstvenc_encoder* const enc) {
+static void
+sstvenc_encoder_begin_frontporch(struct sstvenc_encoder* const enc) {
 	sstvenc_encoder_next_scan_seg(
 	    enc, SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH);
+	sstvenc_encoder_begin_seq(enc, enc->mode->frontporch,
+				  sstvenc_encoder_on_frontporch_done);
+}
+
+static void
+sstvenc_encoder_on_frontporch_done(struct sstvenc_encoder* const enc) {}
+
+static void sstvenc_encoder_begin_gap01(struct sstvenc_encoder* const enc) {
+	sstvenc_encoder_next_scan_seg(enc,
+				      SSTVENC_ENCODER_SCAN_SEGMENT_GAP01);
+	sstvenc_encoder_begin_seq(enc, enc->mode->gap01,
+				  sstvenc_encoder_on_gap01_done);
+}
+
+static void sstvenc_encoder_on_gap01_done(struct sstvenc_encoder* const enc) {
+}
+
+static void sstvenc_encoder_begin_gap12(struct sstvenc_encoder* const enc) {
+	sstvenc_encoder_next_scan_seg(enc,
+				      SSTVENC_ENCODER_SCAN_SEGMENT_GAP12);
+	sstvenc_encoder_begin_seq(enc, enc->mode->gap12,
+				  sstvenc_encoder_on_gap12_done);
+}
+
+static void sstvenc_encoder_on_gap12_done(struct sstvenc_encoder* const enc) {
+}
+
+static void sstvenc_encoder_begin_gap23(struct sstvenc_encoder* const enc) {
+	sstvenc_encoder_next_scan_seg(enc,
+				      SSTVENC_ENCODER_SCAN_SEGMENT_GAP23);
+	sstvenc_encoder_begin_seq(enc, enc->mode->gap23,
+				  sstvenc_encoder_on_gap23_done);
+}
+
+static void sstvenc_encoder_on_gap23_done(struct sstvenc_encoder* const enc) {
+}
+
+static void
+sstvenc_encoder_begin_backporch(struct sstvenc_encoder* const enc) {
+	sstvenc_encoder_next_scan_seg(enc,
+				      SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH);
+	sstvenc_encoder_begin_seq(enc, enc->mode->backporch,
+				  sstvenc_encoder_on_backporch_done);
+}
+
+static void
+sstvenc_encoder_on_backporch_done(struct sstvenc_encoder* const enc) {}
+
+static void sstvenc_encoder_next_scan_seg(struct sstvenc_encoder* const enc,
+					  uint8_t next_segment) {
+	enc->vars.scan.segment = next_segment;
+}
+
+static const struct sstvenc_encoder_pulse*
+sstvenc_encoder_next_image_pulse(struct sstvenc_encoder* const enc) {
+	const struct sstvenc_encoder_pulse* pulse = NULL;
+restart:
+	switch (enc->vars.scan.segment) {
+	case SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH:
+		pulse = sstvenc_encoder_next_seq_pulse(enc);
+		if (pulse) {
+			return pulse;
+		}
+		/* Fall-thru */
+		sstvenc_encoder_begin_channel(
+		    enc, SSTVENC_ENCODER_SCAN_SEGMENT_CH0, 0);
+	case SSTVENC_ENCODER_SCAN_SEGMENT_CH0:
+		pulse = sstvenc_encoder_next_channel_pulse(enc, 0);
+		if (pulse) {
+			return pulse;
+		}
+		/* Fall-thru */
+		sstvenc_encoder_begin_gap01(enc);
+	case SSTVENC_ENCODER_SCAN_SEGMENT_GAP01:
+		pulse = sstvenc_encoder_next_seq_pulse(enc);
+		if (pulse) {
+			return pulse;
+		}
+		/* Fall-thru */
+		sstvenc_encoder_begin_channel(
+		    enc, SSTVENC_ENCODER_SCAN_SEGMENT_CH1, 1);
+	case SSTVENC_ENCODER_SCAN_SEGMENT_CH1:
+		pulse = sstvenc_encoder_next_channel_pulse(enc, 1);
+		if (pulse) {
+			return pulse;
+		}
+		/* Fall-thru */
+		sstvenc_encoder_begin_gap12(enc);
+	case SSTVENC_ENCODER_SCAN_SEGMENT_GAP12:
+		pulse = sstvenc_encoder_next_seq_pulse(enc);
+		if (pulse) {
+			return pulse;
+		}
+		/* Fall-thru */
+		sstvenc_encoder_begin_channel(
+		    enc, SSTVENC_ENCODER_SCAN_SEGMENT_CH2, 2);
+	case SSTVENC_ENCODER_SCAN_SEGMENT_CH2:
+		pulse = sstvenc_encoder_next_channel_pulse(enc, 2);
+		if (pulse) {
+			return pulse;
+		}
+		/* Fall-thru */
+		sstvenc_encoder_begin_gap23(enc);
+	case SSTVENC_ENCODER_SCAN_SEGMENT_GAP23:
+		pulse = sstvenc_encoder_next_seq_pulse(enc);
+		if (pulse) {
+			return pulse;
+		}
+		/* Fall-thru */
+		sstvenc_encoder_next_scan_seg(
+		    enc, SSTVENC_ENCODER_SCAN_SEGMENT_CH3);
+		sstvenc_encoder_begin_channel(
+		    enc, SSTVENC_ENCODER_SCAN_SEGMENT_CH3, 3);
+	case SSTVENC_ENCODER_SCAN_SEGMENT_CH3:
+		pulse = sstvenc_encoder_next_channel_pulse(enc, 3);
+		if (pulse) {
+			return pulse;
+		}
+		/* Fall-thru */
+		sstvenc_encoder_begin_backporch(enc);
+	case SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH:
+		pulse = sstvenc_encoder_next_seq_pulse(enc);
+		if (pulse) {
+			return pulse;
+		}
+		/* Fall-thru */
+	default:
+		sstvenc_encoder_next_scan_seg(
+		    enc, SSTVENC_ENCODER_SCAN_SEGMENT_NEXT);
+		break;
+	}
+
+	/* If we reach here, that's the end of the scan line */
+	enc->vars.scan.x = 0;
 	switch (enc->mode->colour_space_order & SSTVENC_CSO_MASK_MODE) {
 	case SSTVENC_CSO_MODE_YUV2:
 		enc->vars.scan.y += 2;
@@ -509,102 +430,15 @@ static void sstvenc_encoder_do_next_line(struct sstvenc_encoder* const enc) {
 	default:
 		enc->vars.scan.y++;
 	}
-	sstvenc_encoder_do_scan(enc);
-}
 
-static void sstvenc_encoder_do_scan(struct sstvenc_encoder* const enc) {
-	if (enc->vars.scan.y >= enc->mode->height) {
-		/* We are at the bottom of the image */
-		if (enc->mode->finalseq) {
-			/* There's a trail sequence we need to send */
-			sstvenc_encoder_start_finalseq(enc);
-		} else {
-			/* Image data is finished, onto the FSK ID */
-			sstvenc_encoder_start_fsk(enc);
-		}
-		return;
+	if (enc->vars.scan.y < enc->mode->height) {
+		/* Go again */
+		sstvenc_encoder_begin_scanline(enc);
+		goto restart;
 	}
 
-	switch (enc->vars.scan.segment) {
-	case SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH:
-		sstvenc_encoder_do_scan_seq(enc, enc->mode->frontporch,
-					    SSTVENC_ENCODER_SCAN_SEGMENT_CH0);
-		break;
-	case SSTVENC_ENCODER_SCAN_SEGMENT_CH0:
-		sstvenc_encoder_do_scan_channel(enc, 0);
-		break;
-	case SSTVENC_ENCODER_SCAN_SEGMENT_GAP01:
-		sstvenc_encoder_do_scan_seq(enc, enc->mode->gap01,
-					    SSTVENC_ENCODER_SCAN_SEGMENT_CH1);
-		break;
-	case SSTVENC_ENCODER_SCAN_SEGMENT_CH1:
-		sstvenc_encoder_do_scan_channel(enc, 1);
-		break;
-	case SSTVENC_ENCODER_SCAN_SEGMENT_GAP12:
-		sstvenc_encoder_do_scan_seq(enc, enc->mode->gap12,
-					    SSTVENC_ENCODER_SCAN_SEGMENT_CH2);
-		break;
-	case SSTVENC_ENCODER_SCAN_SEGMENT_CH2:
-		sstvenc_encoder_do_scan_channel(enc, 2);
-		break;
-	case SSTVENC_ENCODER_SCAN_SEGMENT_GAP23:
-		sstvenc_encoder_do_scan_seq(enc, enc->mode->gap23,
-					    SSTVENC_ENCODER_SCAN_SEGMENT_CH3);
-		break;
-	case SSTVENC_ENCODER_SCAN_SEGMENT_CH3:
-		sstvenc_encoder_do_scan_channel(enc, 3);
-		break;
-	case SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH:
-		sstvenc_encoder_do_scan_seq(
-		    enc, enc->mode->backporch,
-		    SSTVENC_ENCODER_SCAN_SEGMENT_NEXT);
-		break;
-	default:
-		sstvenc_encoder_do_next_line(enc);
-		break;
-	}
-}
-
-static void sstvenc_encoder_start_scan(struct sstvenc_encoder* const enc) {
-	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_SCAN);
-	enc->vars.scan.y = 0;
-	sstvenc_encoder_next_scan_seg(
-	    enc, SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH);
-	sstvenc_encoder_do_scan(enc);
-}
-
-static void
-sstvenc_encoder_start_finalseq(struct sstvenc_encoder* const enc) {
-	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_FINALSEQ);
-	enc->vars.finalseq.idx = 0;
-	sstvenc_encoder_do_finalseq(enc);
-}
-
-static void sstvenc_encoder_do_finalseq(struct sstvenc_encoder* const enc) {
-	const struct sstvenc_encoder_pulse* step
-	    = (enc->mode->finalseq)
-		  ? (&enc->mode->finalseq[enc->vars.finalseq.idx])
-		  : NULL;
-	if (!step || !step->duration_ns) {
-		/* No sequence, move to the FSK step */
-		sstvenc_encoder_start_fsk(enc);
-		return;
-	}
-
-	switch (enc->tone_state) {
-	case SSTVENC_ENCODER_TONE_GEN_INIT:
-		sstvenc_encoder_start_tone(enc, enc->amplitude,
-					   step->frequency, step->duration_ns,
-					   SSTVENC_TS_UNIT_NANOSECONDS);
-		/* Fall-thru */
-	case SSTVENC_ENCODER_TONE_GEN_RUN:
-		sstvenc_encoder_compute_tone(enc);
-		break;
-	case SSTVENC_ENCODER_TONE_GEN_DONE:
-		sstvenc_encoder_finish_tone(enc);
-		enc->vars.finalseq.idx++;
-		break;
-	}
+	/* That's it! */
+	return NULL;
 }
 
 #define SSTVENC_ENCODER_FSK_SEGMENT_BEGIN    (0)
@@ -665,113 +499,92 @@ static void sstvenc_encoder_fsk_load_next(struct sstvenc_encoder* const enc) {
 	}
 }
 
-static void sstvenc_encoder_start_fsk(struct sstvenc_encoder* const enc) {
-	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_FSK);
-	enc->vars.fsk.segment = SSTVENC_ENCODER_FSK_SEGMENT_BEGIN;
-	enc->vars.fsk.byte    = 0;
-	enc->vars.fsk.bit     = 0;
-	sstvenc_encoder_fsk_load_next(enc);
-	sstvenc_encoder_do_fsk(enc);
-}
-
-static void sstvenc_encoder_do_fsk(struct sstvenc_encoder* const enc) {
+static void sstvenc_encoder_begin_fsk(struct sstvenc_encoder* const enc) {
 	if (enc->fsk_id) {
-		double frequency;
-
-		if (enc->vars.fsk.bit >= 6) {
-			enc->vars.fsk.byte++;
-			sstvenc_encoder_fsk_load_next(enc);
-		}
-
-		if (enc->vars.fsk.segment
-		    >= SSTVENC_ENCODER_FSK_SEGMENT_DONE) {
-			/* This is the end of the FSK ID */
-			sstvenc_encoder_new_phase(enc,
-						  SSTVENC_ENCODER_PHASE_DONE);
-			return;
-		}
-
-		switch (enc->tone_state) {
-		case SSTVENC_ENCODER_TONE_GEN_INIT:
-			/* Next bit */
-			if (enc->vars.fsk.bv & (1 << enc->vars.fsk.bit)) {
-				frequency = SSTVENC_FREQ_FSKID_BIT1;
-			} else {
-				frequency = SSTVENC_FREQ_FSKID_BIT0;
-			}
-			sstvenc_encoder_start_tone(
-			    enc, enc->amplitude, frequency,
-			    SSTVENC_PERIOD_FSKID_BIT,
-			    SSTVENC_TS_UNIT_MICROSECONDS);
-			/* Fall-thru */
-		case SSTVENC_ENCODER_TONE_GEN_RUN:
-			sstvenc_encoder_compute_tone(enc);
-			break;
-		case SSTVENC_ENCODER_TONE_GEN_DONE:
-			sstvenc_encoder_finish_tone(enc);
-			enc->vars.fsk.bit++;
-			break;
-		}
-	} else {
-		switch (enc->tone_state) {
-		case SSTVENC_ENCODER_TONE_GEN_INIT:
-			/* Just start a 1kHz tone to quickly tail-off */
-			sstvenc_encoder_start_tone(enc, enc->amplitude,
-						   1000.0, enc->slope_period,
-						   SSTVENC_TS_UNIT_SECONDS);
-			/* Fall-thru */
-		case SSTVENC_ENCODER_TONE_GEN_RUN:
-			sstvenc_encoder_compute_tone(enc);
-			break;
-		case SSTVENC_ENCODER_TONE_GEN_DONE:
-			sstvenc_encoder_finish_tone(enc);
-			sstvenc_encoder_new_phase(enc,
-						  SSTVENC_ENCODER_PHASE_DONE);
-			break;
-		}
+		sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_FSK);
+		enc->vars.fsk.segment = SSTVENC_ENCODER_FSK_SEGMENT_BEGIN;
+		enc->vars.fsk.byte    = 0;
+		enc->vars.fsk.bit     = 0;
+		sstvenc_encoder_fsk_load_next(enc);
 	}
 }
 
-void sstvenc_encoder_compute(struct sstvenc_encoder* const enc) {
-	const uint32_t start_idx = enc->sample_idx;
-	uint8_t	       cycles	 = 5;
-
-	while ((enc->sample_idx == start_idx)
-	       && (enc->phase != SSTVENC_ENCODER_PHASE_DONE)) {
-		cycles--;
-		assert(cycles > 0);
-		switch (enc->phase) {
-		case SSTVENC_ENCODER_PHASE_INIT:
-			if (enc->preamble) {
-				sstvenc_encoder_start_preamble(enc);
-			} else {
-				sstvenc_encoder_start_vis(enc);
-			}
-			break;
-		case SSTVENC_ENCODER_PHASE_PREAMBLE:
-			sstvenc_encoder_do_preamble(enc);
-			break;
-		case SSTVENC_ENCODER_PHASE_VIS:
-			sstvenc_encoder_do_vis(enc);
-			break;
-		case SSTVENC_ENCODER_PHASE_INITSEQ:
-			sstvenc_encoder_do_initseq(enc);
-			break;
-		case SSTVENC_ENCODER_PHASE_SCAN:
-			sstvenc_encoder_do_scan(enc);
-			break;
-		case SSTVENC_ENCODER_PHASE_FINALSEQ:
-			sstvenc_encoder_do_finalseq(enc);
-			break;
-		case SSTVENC_ENCODER_PHASE_FSK:
-			sstvenc_encoder_do_fsk(enc);
-			break;
-		default:
-			break;
-		}
+static const struct sstvenc_encoder_pulse*
+sstvenc_encoder_next_fsk_pulse(struct sstvenc_encoder* const enc) {
+	if (enc->vars.fsk.bit >= 6) {
+		enc->vars.fsk.byte++;
+		sstvenc_encoder_fsk_load_next(enc);
 	}
 
-	/* Ensure we have advanced one position */
-	assert((enc->sample_idx == (start_idx + 1))
-	       || (enc->phase == SSTVENC_ENCODER_PHASE_DONE));
+	if (enc->vars.fsk.segment >= SSTVENC_ENCODER_FSK_SEGMENT_DONE) {
+		/* This is the end of the FSK ID */
+		return NULL;
+	}
+
+	/* Next bit */
+	if (enc->vars.fsk.bv & (1 << enc->vars.fsk.bit)) {
+		enc->pulse.frequency = SSTVENC_FREQ_FSKID_BIT1;
+	} else {
+		enc->pulse.frequency = SSTVENC_FREQ_FSKID_BIT0;
+	}
+	enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_FSKID_BIT;
+	enc->vars.fsk.bit++;
+
+	return &(enc->pulse);
+}
+
+const struct sstvenc_encoder_pulse*
+sstvenc_encoder_next_pulse(struct sstvenc_encoder* const enc) {
+	const struct sstvenc_encoder_pulse* pulse = NULL;
+	switch (enc->phase) {
+	case SSTVENC_ENCODER_PHASE_INIT:
+		sstvenc_encoder_begin_vis(enc);
+		/* Fall-thru */
+	case SSTVENC_ENCODER_PHASE_VIS:
+		pulse = sstvenc_encoder_next_vis_pulse(enc);
+		if (pulse) {
+			break;
+		} else {
+			sstvenc_encoder_begin_seq(
+			    enc, enc->mode->initseq,
+			    sstvenc_encoder_on_initseq_done);
+		}
+		/* Fall-thru */
+	case SSTVENC_ENCODER_PHASE_INITSEQ:
+		pulse = sstvenc_encoder_next_seq_pulse(enc);
+		if (pulse) {
+			break;
+		} else {
+			sstvenc_encoder_begin_image(enc);
+		}
+		/* Fall-thru */
+		break;
+	case SSTVENC_ENCODER_PHASE_SCAN:
+		pulse = sstvenc_encoder_next_image_pulse(enc);
+		if (pulse) {
+			break;
+		} else {
+			sstvenc_encoder_begin_seq(
+			    enc, enc->mode->finalseq,
+			    sstvenc_encoder_on_finalseq_done);
+		}
+		/* Fall-thru */
+	case SSTVENC_ENCODER_PHASE_FINALSEQ:
+		pulse = sstvenc_encoder_next_seq_pulse(enc);
+		if (pulse) {
+			break;
+		}
+		/* Fall-thru */
+	case SSTVENC_ENCODER_PHASE_FSK:
+		pulse = sstvenc_encoder_next_fsk_pulse(enc);
+		if (pulse) {
+			break;
+		}
+		/* Fall-thru */
+	default:
+		sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_DONE);
+		break;
+	}
+
+	return pulse;
 }
