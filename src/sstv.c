@@ -982,7 +982,6 @@ sstvenc_encoder_get_pixel_freq(struct sstvenc_encoder* const enc,
 	switch (enc->mode->colour_space_order & SSTVENC_CSO_MASK_MODE) {
 	case SSTVENC_CSO_MODE_YUV2: {
 		const uint16_t row_length = 3 * enc->mode->width;
-		uint16_t       y	  = enc->vars.scan.y;
 		assert(!(enc->vars.scan.y % 2));
 
 		switch (
