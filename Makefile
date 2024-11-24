@@ -233,7 +233,8 @@ install_progs:
 build_docs: $(BUILD_DIR)/docs/html/index.html
 
 $(BUILD_DIR)/docs/html/index.html: $(BUILD_DIR)/docs/Doxyfile \
-		$(LIB_HEADERS) $(LIB_SOURCES) $(EXAMPLE_SOURCES)
+		$(LIB_HEADERS) $(LIB_SOURCES) $(EXAMPLE_SOURCES) \
+		$(shell find $(TOP_DIR) -type f -name \*.md)
 	cd $(TOP_DIR) ; $(DOXYGEN) $<
 
 $(BUILD_DIR)/docs/Doxyfile: $(TOP_DIR)/Doxyfile | $(BUILD_DIR)/.mkdir
