@@ -9,8 +9,8 @@
  * at a given frequency for a given sample rate.
  *
  * The phase is computed at each sample step, and increments modulo 2-Pi.
- * Frequency, amplitude and phase can be modified at any time, they take effect
- * on the next call to @ref sstvenc_osc_compute.
+ * Frequency, amplitude and phase can be modified at any time, they take
+ * effect on the next call to @ref sstvenc_osc_compute.
  */
 
 /*
