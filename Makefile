@@ -103,7 +103,7 @@ SRC_DIR ?= $(TOP_DIR)/src
 # Core build targets.
 #############################################################################
 
-.PHONY: all clean docs examples install libs pretty progs
+.PHONY: all clean docs install pretty
 
 COMPONENTS =
 
@@ -124,6 +124,8 @@ COMPONENTS += progs
 endif
 
 all: $(patsubst %,build_%,$(COMPONENTS))
+
+docs: build_docs
 
 install: $(patsubst %,install_%,$(COMPONENTS))
 
@@ -204,13 +206,15 @@ $(BUILD_DIR)/libs/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)/libs/%.d
 # libsstvenc examples
 #############################################################################
 
+EXAMPLE_SOURCES := $(wildcard $(EXAMPLE_SRC_DIR)/*.c)
+
 .PHONY: build_examples install_examples
 build_examples:
 
 install_examples:
 	$(INSTALL) -d -g root -o root -m 0755 $(DESTDIR)$(EXAMPLEDIR)
 	$(INSTALL) -g root -o root -m 0644 -t $(DESTDIR)$(EXAMPLEDIR) \
-		$(wildcard $(EXAMPLE_SRC_DIR)/*.c)
+		$(EXAMPLE_SOURCES)
 
 #############################################################################
 # libsstvenc programs
@@ -228,8 +232,9 @@ install_progs:
 .PHONY: build_docs install_docs
 build_docs: $(BUILD_DIR)/docs/html/index.html
 
-$(BUILD_DIR)/docs/html/index.html: $(BUILD_DIR)/docs/Doxyfile
-	cd $(TOP_DIR) ; $(DOXYGEN) $^
+$(BUILD_DIR)/docs/html/index.html: $(BUILD_DIR)/docs/Doxyfile \
+		$(LIB_HEADERS) $(LIB_SOURCES) $(EXAMPLE_SOURCES)
+	cd $(TOP_DIR) ; $(DOXYGEN) $<
 
 $(BUILD_DIR)/docs/Doxyfile: $(TOP_DIR)/Doxyfile | $(BUILD_DIR)/.mkdir
 	$(SED) -e '/^OUTPUT_DIRECTORY[\t ]\+=/ s|=.*$$|= $(BUILD_DIR)/docs|' \
