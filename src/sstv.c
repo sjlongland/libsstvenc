@@ -13,20 +13,368 @@
 #include <libsstvenc/sstv.h>
 #include <libsstvenc/sstvfreq.h>
 
-#define SSTVENC_VIS_BIT_START1 (0)
-#define SSTVENC_VIS_BIT_START2 (1)
-#define SSTVENC_VIS_BIT_START3 (2)
-#define SSTVENC_VIS_BIT_START4 (3)
-#define SSTVENC_VIS_BIT_DATA1  (4)
-#define SSTVENC_VIS_BIT_DATA2  (5)
-#define SSTVENC_VIS_BIT_DATA3  (6)
-#define SSTVENC_VIS_BIT_DATA4  (7)
-#define SSTVENC_VIS_BIT_DATA5  (8)
-#define SSTVENC_VIS_BIT_DATA6  (9)
-#define SSTVENC_VIS_BIT_DATA7  (10)
-#define SSTVENC_VIS_BIT_PARITY (11)
-#define SSTVENC_VIS_BIT_STOP   (12)
-#define SSTVENC_VIS_BIT_END    (13)
+/*!
+ * @defgroup sstv_vis_bit SSTV VIS header bits
+ * @{
+ */
+
+/*! Start of VIS header bit 1: 1900Hz pulse for 300ms */
+#define SSTVENC_VIS_BIT_START1			(0)
+
+/*! Start of VIS header bit 2: 1200Hz pulse for 10ms */
+#define SSTVENC_VIS_BIT_START2			(1)
+
+/*! Start of VIS header bit 3: 1900Hz pulse for 300ms */
+#define SSTVENC_VIS_BIT_START3			(2)
+
+/*! Start of VIS header bit 2: 1200Hz pulse for 30ms */
+#define SSTVENC_VIS_BIT_START4			(3)
+
+/*!
+ * Data bit 1, 30ms pulse with frequency set by
+ * @ref sstvenc_encoder_vis_data_freq
+ */
+#define SSTVENC_VIS_BIT_DATA1			(4)
+
+/*!
+ * Data bit 2, 30ms pulse with frequency set by
+ * @ref sstvenc_encoder_vis_data_freq
+ */
+#define SSTVENC_VIS_BIT_DATA2			(5)
+
+/*!
+ * Data bit 3, 30ms pulse with frequency set by
+ * @ref sstvenc_encoder_vis_data_freq
+ */
+#define SSTVENC_VIS_BIT_DATA3			(6)
+
+/*!
+ * Data bit 4, 30ms pulse with frequency set by
+ * @ref sstvenc_encoder_vis_data_freq
+ */
+#define SSTVENC_VIS_BIT_DATA4			(7)
+
+/*!
+ * Data bit 5, 30ms pulse with frequency set by
+ * @ref sstvenc_encoder_vis_data_freq
+ */
+#define SSTVENC_VIS_BIT_DATA5			(8)
+
+/*!
+ * Data bit 6, 30ms pulse with frequency set by
+ * @ref sstvenc_encoder_vis_data_freq
+ */
+#define SSTVENC_VIS_BIT_DATA6			(9)
+
+/*!
+ * Data bit 7, 30ms pulse with frequency set by
+ * @ref sstvenc_encoder_vis_data_freq
+ */
+#define SSTVENC_VIS_BIT_DATA7			(10)
+
+/*!
+ * Parity bit, 30ms pulse with frequency set by
+ * @ref sstvenc_encoder_vis_parity_freq
+ */
+#define SSTVENC_VIS_BIT_PARITY			(11)
+
+/*!
+ * VIS header STOP bit, 1200Hz for 30ms
+ */
+#define SSTVENC_VIS_BIT_STOP			(12)
+
+/*!
+ * VIS header state machine final state.
+ */
+#define SSTVENC_VIS_BIT_END			(13)
+
+/*! @} */
+
+/*!
+ * @defgroup sstv_scan_seg SSTV scan line segments
+ * @{
+ */
+
+/*!
+ * Front-porch segment.  This is used for the initial sync pulse and any
+ * front-porch pulses needed for the SSTV mode.  Pretty much all SSTV modes
+ * define a front porch pulse sequence.
+ */
+#define SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH (0)
+
+/*!
+ * Scan line channel 0, present in all SSTV modes.
+ */
+#define SSTVENC_ENCODER_SCAN_SEGMENT_CH0	(1)
+
+/*!
+ * The gap between channels 0 and 1.  Optional.
+ */
+#define SSTVENC_ENCODER_SCAN_SEGMENT_GAP01	(2)
+
+/*!
+ * Scan line channel 1, present in all colour SSTV modes.
+ */
+#define SSTVENC_ENCODER_SCAN_SEGMENT_CH1	(3)
+
+/*!
+ * The gap between channels 1 and 2.  Optional.
+ */
+#define SSTVENC_ENCODER_SCAN_SEGMENT_GAP12	(4)
+
+/*!
+ * Scan line channel 2, present in all colour SSTV modes.
+ */
+#define SSTVENC_ENCODER_SCAN_SEGMENT_CH2	(5)
+
+/*!
+ * The gap between channels 2 and 3.  Optional.
+ */
+#define SSTVENC_ENCODER_SCAN_SEGMENT_GAP23	(6)
+
+/*!
+ * Scan line channel 3, present in Robot36 and the PD modes.
+ */
+#define SSTVENC_ENCODER_SCAN_SEGMENT_CH3	(7)
+
+/*!
+ * Sync pulses inserted at the end of a scan line prior to beginning the
+ * front-porch for the next scan line.  Optional.
+ */
+#define SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH	(8)
+
+/*!
+ * Dummy state to indicate the state machine has completed a scan line.
+ */
+#define SSTVENC_ENCODER_SCAN_SEGMENT_NEXT	(9)
+/*! @} */
+
+/*!
+ * Transition the encoder to the next phase.  Used as a debugging attachment
+ * point in development.
+ *
+ * @param[out]	enc	SSTV encoder context
+ * @param[in]	phase	New phase, @ref sstv_phase
+ */
+static void sstvenc_encoder_new_phase(struct sstvenc_encoder* const enc,
+				      uint8_t			    phase);
+
+/*!
+ * Begin a pulse sequence.
+ *
+ * @param[inout]	enc	SSTV encoder instance
+ * @param[in]		seq	Pulse sequence, terminated with a 0ns "pulse".
+ * @param[in]		on_done	Callback to run when the pulse sequence ends.
+ */
+static void sstvenc_encoder_begin_seq(struct sstvenc_encoder* const	  enc,
+				      const struct sstvenc_encoder_pulse* seq,
+				      sstvenc_encoder_callback* on_done);
+
+/*!
+ * Emit the next pulse in the pulse sequence.  If there are no more pulses,
+ * call the call-back function (if defined).
+ *
+ * @param[inout]	enc	SSTV encoder instance
+ *
+ * @returns	Next pulse in the sequence
+ *
+ * @retval	NULL	No more pulses in the sequence.
+ */
+static const struct sstvenc_encoder_pulse*
+	    sstvenc_encoder_next_seq_pulse(struct sstvenc_encoder* const enc);
+
+/*!
+ * Start sending the VIS header.
+ *
+ * @param[inout]	enc	SSTV encoder instance
+ */
+static void sstvenc_encoder_begin_vis(struct sstvenc_encoder* const enc);
+
+/*!
+ * Compute the frequency for the next VIS data bit.
+ *
+ * @param[inout]	enc	SSTV encoder instance
+ *
+ * @returns	SSTV VIS header data bit frequency in Hz.
+ */
+static uint32_t
+sstvenc_encoder_vis_data_freq(struct sstvenc_encoder* const enc);
+
+/*!
+ * Compute the frequency for the VIS parity bit.  The 8th bit of the VIS
+ * header is used to invert the parity for modes that require it.
+ *
+ * @param[inout]	enc	SSTV encoder instance
+ *
+ * @returns	SSTV VIS header parity bit frequency in Hz.
+ */
+static uint32_t
+sstvenc_encoder_vis_parity_freq(struct sstvenc_encoder* const enc);
+
+/*!
+ * Determine and emit the next VIS header pulse to be sent.
+ *
+ * @param[inout]	enc	SSTV encoder instance
+ *
+ * @returns	Pointer to SSTV VIS header pulse frequency (in Hz) and
+ * duration (in ns)
+ *
+ * @retval	NULL	End of VIS header.
+ */
+static const struct sstvenc_encoder_pulse*
+	    sstvenc_encoder_next_vis_pulse(struct sstvenc_encoder* const enc);
+
+/*!
+ * Set up the state machine for the beginning of the image scan.
+ *
+ * @param[inout]	enc	SSTV encoder instance
+ */
+static void sstvenc_encoder_begin_image(struct sstvenc_encoder* const enc);
+
+/*!
+ * Set up the state machine for the beginning of a single scan line.
+ *
+ * @param[inout]	enc	SSTV encoder instance
+ */
+static void sstvenc_encoder_begin_scanline(struct sstvenc_encoder* const enc);
+
+/*!
+ * Set up the state machine for transmitting the given channel of the current
+ * scan line.
+ *
+ * @param[inout]	enc	SSTV encoder instance
+ * @param[in]		ch	SSTV scan line channel being emitted
+ * 				(0-3 inclusive)
+ */
+static void sstvenc_encoder_begin_channel(struct sstvenc_encoder* const enc,
+					  uint8_t segment, uint8_t ch);
+
+/*!
+ * Initialise the state for the next scan segment.  Used as a debugging
+ * attachment point in development.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ * @param[in]		next_segment	The next scan line segment.
+ * 					@ref sstv_scan_seg
+ */
+static void sstvenc_encoder_next_scan_seg(struct sstvenc_encoder* const enc,
+					  uint8_t next_segment);
+
+/*!
+ * End of initialisation pulse sequence.  This signals the beginning of the
+ * image scan.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ */
+static void
+sstvenc_encoder_on_initseq_done(struct sstvenc_encoder* const enc);
+
+/*!
+ * Set up the state machine for sending the FSK ID.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ */
+static void sstvenc_encoder_begin_fsk(struct sstvenc_encoder* const enc);
+
+/*!
+ * Handle the end of the end-of-image pulse sequence.  This triggers a
+ * transition to sending the FSK ID.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ */
+static void
+sstvenc_encoder_on_finalseq_done(struct sstvenc_encoder* const enc);
+
+/*!
+ * Set up the state machine to begin sending the front-porch sync pulses
+ * at the beginning of the scan line.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ */
+static void
+sstvenc_encoder_begin_frontporch(struct sstvenc_encoder* const enc);
+
+/*!
+ * Set up the state machine to begin sending the sync pulses that separate
+ * channels 0 and 1.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ */
+static void sstvenc_encoder_begin_gap01(struct sstvenc_encoder* const enc);
+
+/*!
+ * Set up the state machine to begin sending the sync pulses that separate
+ * channels 1 and 2.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ */
+static void sstvenc_encoder_begin_gap12(struct sstvenc_encoder* const enc);
+
+/*!
+ * Set up the state machine to begin sending the sync pulses that separate
+ * channels 2 and 3.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ */
+static void sstvenc_encoder_begin_gap23(struct sstvenc_encoder* const enc);
+
+/*!
+ * Set up the state machine to begin sending the back-porch sync pulses
+ * at the end of the scan line.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ */
+static void
+sstvenc_encoder_begin_backporch(struct sstvenc_encoder* const enc);
+
+/*!
+ * Compute the frequency of the next pulse for the current pixel in the
+ * indicated scan line.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ * @param[in]		ch		Scan line channel (0-3 inclusive)
+ *
+ * @returns	Pointer to SSTV pixel pulse.
+ *
+ * @retval	NULL	End of scan segment.
+ */
+static const struct sstvenc_encoder_pulse*
+sstvenc_encoder_next_channel_pulse(struct sstvenc_encoder* const enc,
+				   uint8_t			 ch);
+
+/*!
+ * Compute the frequency of the next pulse for the image according to the
+ * state machine.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ *
+ * @returns	Pointer to SSTV image pulse.
+ *
+ * @retval	NULL	End of image scan.
+ */
+static const struct sstvenc_encoder_pulse*
+sstvenc_encoder_next_image_pulse(struct sstvenc_encoder* const enc);
+
+/*!
+ * Determine the value of the next (6-bit) FSK byte to transmit and load it
+ * into the state machine.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ */
+static void sstvenc_encoder_fsk_load_next(struct sstvenc_encoder* const enc);
+
+/*!
+ * Compute the frequency of the next pulse for the FSK ID according to the
+ * state machine.
+ *
+ * @param[inout]	enc		SSTV encoder instance
+ *
+ * @returns	Pointer to FSK pulse.
+ *
+ * @retval	NULL	End of FSK ID.
+ */
+static const struct sstvenc_encoder_pulse*
+	    sstvenc_encoder_next_fsk_pulse(struct sstvenc_encoder* const enc);
 
 static void sstvenc_encoder_new_phase(struct sstvenc_encoder* const enc,
 				      uint8_t			    phase) {
@@ -154,33 +502,9 @@ sstvenc_encoder_next_vis_pulse(struct sstvenc_encoder* const enc) {
 	}
 }
 
-#define SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH (0)
-#define SSTVENC_ENCODER_SCAN_SEGMENT_CH0	(1)
-#define SSTVENC_ENCODER_SCAN_SEGMENT_GAP01	(2)
-#define SSTVENC_ENCODER_SCAN_SEGMENT_CH1	(3)
-#define SSTVENC_ENCODER_SCAN_SEGMENT_GAP12	(4)
-#define SSTVENC_ENCODER_SCAN_SEGMENT_CH2	(5)
-#define SSTVENC_ENCODER_SCAN_SEGMENT_GAP23	(6)
-#define SSTVENC_ENCODER_SCAN_SEGMENT_CH3	(7)
-#define SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH	(8)
-#define SSTVENC_ENCODER_SCAN_SEGMENT_NEXT	(9)
-
-static void sstvenc_encoder_begin_image(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_begin_scanline(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_begin_channel(struct sstvenc_encoder* const enc,
-					  uint8_t segment, uint8_t ch);
-static void sstvenc_encoder_next_scan_seg(struct sstvenc_encoder* const enc,
-					  uint8_t next_segment);
-
 static void
 sstvenc_encoder_on_initseq_done(struct sstvenc_encoder* const enc) {
 	sstvenc_encoder_begin_image(enc);
-}
-
-static void sstvenc_encoder_begin_fsk(struct sstvenc_encoder* const enc);
-static void
-sstvenc_encoder_on_finalseq_done(struct sstvenc_encoder* const enc) {
-	sstvenc_encoder_begin_fsk(enc);
 }
 
 static void sstvenc_encoder_begin_image(struct sstvenc_encoder* const enc) {
@@ -188,21 +512,6 @@ static void sstvenc_encoder_begin_image(struct sstvenc_encoder* const enc) {
 	enc->vars.scan.y = 0;
 	sstvenc_encoder_begin_scanline(enc);
 }
-
-static void
-sstvenc_encoder_begin_frontporch(struct sstvenc_encoder* const enc);
-static void
-sstvenc_encoder_on_frontporch_done(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_begin_gap01(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_on_gap01_done(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_begin_gap12(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_on_gap12_done(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_begin_gap23(struct sstvenc_encoder* const enc);
-static void sstvenc_encoder_on_gap23_done(struct sstvenc_encoder* const enc);
-static void
-sstvenc_encoder_begin_backporch(struct sstvenc_encoder* const enc);
-static void
-sstvenc_encoder_on_backporch_done(struct sstvenc_encoder* const enc);
 
 static void
 sstvenc_encoder_begin_scanline(struct sstvenc_encoder* const enc) {
@@ -295,57 +604,42 @@ static void
 sstvenc_encoder_begin_frontporch(struct sstvenc_encoder* const enc) {
 	sstvenc_encoder_next_scan_seg(
 	    enc, SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH);
-	sstvenc_encoder_begin_seq(enc, enc->mode->frontporch,
-				  sstvenc_encoder_on_frontporch_done);
+	sstvenc_encoder_begin_seq(enc, enc->mode->frontporch, NULL);
 }
-
-static void
-sstvenc_encoder_on_frontporch_done(struct sstvenc_encoder* const enc) {}
 
 static void sstvenc_encoder_begin_gap01(struct sstvenc_encoder* const enc) {
 	sstvenc_encoder_next_scan_seg(enc,
 				      SSTVENC_ENCODER_SCAN_SEGMENT_GAP01);
-	sstvenc_encoder_begin_seq(enc, enc->mode->gap01,
-				  sstvenc_encoder_on_gap01_done);
-}
-
-static void sstvenc_encoder_on_gap01_done(struct sstvenc_encoder* const enc) {
+	sstvenc_encoder_begin_seq(enc, enc->mode->gap01, NULL);
 }
 
 static void sstvenc_encoder_begin_gap12(struct sstvenc_encoder* const enc) {
 	sstvenc_encoder_next_scan_seg(enc,
 				      SSTVENC_ENCODER_SCAN_SEGMENT_GAP12);
-	sstvenc_encoder_begin_seq(enc, enc->mode->gap12,
-				  sstvenc_encoder_on_gap12_done);
-}
-
-static void sstvenc_encoder_on_gap12_done(struct sstvenc_encoder* const enc) {
+	sstvenc_encoder_begin_seq(enc, enc->mode->gap12, NULL);
 }
 
 static void sstvenc_encoder_begin_gap23(struct sstvenc_encoder* const enc) {
 	sstvenc_encoder_next_scan_seg(enc,
 				      SSTVENC_ENCODER_SCAN_SEGMENT_GAP23);
-	sstvenc_encoder_begin_seq(enc, enc->mode->gap23,
-				  sstvenc_encoder_on_gap23_done);
-}
-
-static void sstvenc_encoder_on_gap23_done(struct sstvenc_encoder* const enc) {
+	sstvenc_encoder_begin_seq(enc, enc->mode->gap23, NULL);
 }
 
 static void
 sstvenc_encoder_begin_backporch(struct sstvenc_encoder* const enc) {
 	sstvenc_encoder_next_scan_seg(enc,
 				      SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH);
-	sstvenc_encoder_begin_seq(enc, enc->mode->backporch,
-				  sstvenc_encoder_on_backporch_done);
+	sstvenc_encoder_begin_seq(enc, enc->mode->backporch, NULL);
 }
-
-static void
-sstvenc_encoder_on_backporch_done(struct sstvenc_encoder* const enc) {}
 
 static void sstvenc_encoder_next_scan_seg(struct sstvenc_encoder* const enc,
 					  uint8_t next_segment) {
 	enc->vars.scan.segment = next_segment;
+}
+
+static void
+sstvenc_encoder_on_finalseq_done(struct sstvenc_encoder* const enc) {
+	sstvenc_encoder_begin_fsk(enc);
 }
 
 static const struct sstvenc_encoder_pulse*
