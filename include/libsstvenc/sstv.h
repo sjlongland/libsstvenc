@@ -19,13 +19,13 @@
  * - for modes with colour-space SSTVENC_CSO_MODE_RGB: an array of `uint8_t`s
  *   measuring sstvenc_mode#width times sstvenc_mode#height times 3.
  *   Every 3 elements represents a pixel's RGB colour in the order: red,
- * green, blue.
+ *   green, blue.
  *
  * - for modes with colour-spaces SSTVENC_CSO_MODE_YUV or
  *   SSTVENC_CSO_MODE_YUV2: an array of `uint8_t`s measuring
- * sstvenc_mode#width times sstvenc_mode#height times 3.  Every 3 elements
- * represents a pixel's YUV colour in the order: Y (luminance), U (R-Y), V
- * (B-Y).
+ *   sstvenc_mode#width times sstvenc_mode#height times 3.  Every 3 elements
+ *   represents a pixel's YUV colour in the order: Y (luminance), U (R-Y), V
+ *   (B-Y).
  *
  * The routines in @ref yuv may be useful for converting between RGB and YUV
  * or monochrome modes in your application.
