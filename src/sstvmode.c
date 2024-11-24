@@ -1,3 +1,8 @@
+/*!
+ * @addtogroup sstvmode
+ * @{
+ */
+
 /*
  * © Stuart Longland VK4MSL
  * SPDX-License-Identifier: MIT
@@ -572,3 +577,5 @@ const struct sstvenc_mode* sstvenc_get_mode_by_name(const char* name) {
 	}
 	return NULL;
 }
+
+/*! @} */
