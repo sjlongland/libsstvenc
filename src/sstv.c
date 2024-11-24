@@ -1,3 +1,9 @@
+
+/*!
+ * @addtogroup sstv
+ * @{
+ */
+
 /*
  * © Stuart Longland VK4MSL
  * SPDX-License-Identifier: MIT
@@ -588,3 +594,7 @@ sstvenc_encoder_next_pulse(struct sstvenc_encoder* const enc) {
 
 	return pulse;
 }
+
+/*!
+ * @}
+ */
