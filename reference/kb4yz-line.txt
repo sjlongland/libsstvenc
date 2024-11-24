@@ -1,0 +1,249 @@
+UPDATED 1/5/99
+                           SSTV MODES - LINE TIMING
+                           ========================
+            JV
+ PS   PAS   FAX
+ VIS  VIS   VIS    LPM            LINES  MODE
+====  ====  ==== ================ =====  ==========================
+  0    00     0   600.140          120   ROBOT 12 COLOR PC
+  0    00     0   600.000          120   ROBOT 12 COLOR PL
+  0    00     0   598.649          120   ROBOT 12 COLOR SAW
+  0    00     0   598.600          120   ROBOT 12 COLOR ROB
+
+  2    82    65   900.200          120   ROBOT 8 B&W PC
+  2    82    65   900.000          120   ROBOT 8 B&W PL
+  2    82    65   896.910          120   ROBOT 8 B&W SAW
+  2    82    65   896.800          120   ROBOT 8 B&W WPP
+  2    82    65   896.900          120   ROBOT 8 B&W ROB
+  2    82    65   874.700          120   ROBOT 8 B&W MS 2.20 NO VIS
+
+  4    84    33   300.080          120   ROBOT 24 COLOR PC
+  4    84    33   300.000          120   ROBOT 24 COLOR PL/SAW/ROB
+
+  6    86   (96)  600.140          120   ROBOT 12 B&W PC
+  6    86   (96)  600.000          120   ROBOT 12 B&W PL/SAW/WPP/ROB
+
+  8    88    17   399.688          240   ROBOT 36 COLOR PC
+  8    88    17   400.000          240   ROBOT 36 COLOR CP/PL/SAW/W95/ROB
+
+ 10    8A   (80)  599.530          240   ROBOT 24 B&W PC
+ 10    8A   (80)  600.000          240   ROBOT 24 B&W PL/SAW/WPP/ROB
+ 10    8A   (80)  600.060          256   ROBOT 24 B&W PS
+
+ 12    0C    48   200.000000000    240   ROBOT 72 COLOR CP/PL/SAW/W95/WPP/ROB
+ 12    0C    48   200.000000000    256   ROBOT 72 COLOR JV
+ 12    0C    48   199.868          240   ROBOT 72 COLOR PC
+ 12    0C    48   200.003          256   ROBOT 72 COLOR PS
+
+ 14    8E   113   399.738          240   ROBOT 36 B&W PC
+ 14    8E   113   400.000          240   ROBOT 36 B&W PL/SAW/WPP/ROB
+ 14    8E   113   400.025          256   ROBOT 36 B&W PS
+
+ 16    90     9   933.420          128   WRAASE SC-1 24 COLOR PC
+ 16    90     9   900.000          128   WRAASE SC-1 24 COLOR PL
+ 16    90     9   940.270          128   WRAASE SC-1 24 COLOR JV
+ 16    90     9   930.430          128   WRAASE SC-1 24 COLOR ROB
+ 16    90     9   971.900          128   WRAASE SC-1 24 COLOR MS 2.20 NO VIS
+
+ 18   (12)   72   940.2700000      128   WRAASE SC-1 8 B&W JV
+ 18   (12)   72  1000.000          120   WRAASE SC-1 8 B&W PAS
+ 18   (12)   72   930.410          128   WRAASE SC-1 8 B&W SAW
+ 18   (12)   72   971.900          128   WRAASE SC-1 7.2 B&W MS 2.20 NO VIS
+
+ 20   (14)   40   489.101999999    128   WRAASE SC-1 48 COLOR JV
+ 20   (14)   40   494.960          128   WRAASE SC-1 48 COLOR ROB
+ 20   (14)   40   485.6000         128   WRAASE SC-1 48 COLOR MS 2.20 NO VIS
+
+ 22   (96)  105   489.101999999    128   WRAASE SC-1 16 B&W JV
+ 22   (96)  105   499.680          120   WRAASE SC-1 16 B&W PC
+ 22   (96)  105   500.000          120   WRAASE SC-1 16 B&W PL
+ 22   (96)  105   494.960          128   WRAASE SC-1 16 B&W SAW
+ 22   (96)  105   495.600          128   WRAASE SC-1 16 B&W MS 2.20 NO VIS
+
+ 24    18    24   933.420          256   WRAASE SC-1 48 COLOR PC
+ 24    18    24   900.000          256   WRAASE SC-1 48 COLOR PL
+ 24    18    24   940.2700000      256   WRAASE SC-1 48 COLOR JV
+ 24    18    24   930.430          256   WRAASE SC-1 48 COLOR ROB
+
+ 26   (9A)   89   930.520          256   WRAASE SC-1 24 B&W WPP
+
+ 28    9C    57   496.728          256   WRAASE SC-1 96 COLOR PC
+ 28    9C    57   500.000          256   WRAASE SC-1 96 COLOR PL
+ 28    9C    57   489.101999999    256   WRAASE SC-1 96 COLOR JV
+ 28    9C    57   494.960          256   WRAASE SC-1 96 COLOR ROB
+ 28    9C    57   485.600          256   WRAASE SC-1 96 COLOR MS 2.20 NO VIS
+
+ 30   (1E)  120   489.101999999    256   WRAASE SC-1 32 B&W JV
+ 30   (1E)  120   499.680          240   WRAASE SC-1 32 B&W PC
+ 30   (1E)  120   500.000          240   WRAASE SC-1 32 B&W PL
+ 30   (1E)  120   494.950          256   WRAASE SC-1 32 B&W WPP
+ 30   (1E)  120   494.960          256   WRAASE SC-1 32 B&W SAW
+ 30   (1E)  120   495.600          256   WRAASE SC-1 32 B&W MS 2.20 NO VIS
+
+ 32    A0     5   264.5525975      128   MARTIN 4 PAS/SAW/WPP/ROB
+
+ 36    24    36   134.3947532      128   MARTIN 3 PAS/SAW/WPP/ROB
+
+ 40    28    20   264.5525975      256   MARTIN 2 CP/JV/PAS/PS/SAW/W95/WPP/ROB
+
+ 41   (A9)  149    85.055          256   MARTIN HQ1 WPP
+
+ 42   (AA)   85    68.680          256   MARTIN HQ2 WPP
+
+ 44    AC    53   134.3947532      256   MARTIN 1 CP/JV/PAS/PS/SAW/W95/WPP/WS/ROB
+
+ 48    30    12   216.0667214      128   SCOTTIE 4 PC SAW/ROB
+
+ 51   (33)  204   249.595          128   WRAASE SC-2 30 COLOR SAW
+ 51   (33)  204   249.600          128   WRAASE SC-2 30 COLOR WPP/ROB
+
+ 52    B4    45   140.1148942      128   SCOTTIE 3 PAS/SAW/ROB
+
+ 55    B7   237    84.3830000000   256   WRAASE SC-2 180 COLOR CP/JV/PAS/SAW/WPP/ROB
+ 55    B7   237    84.3815         256   WRAASE SC-2 180 COLOR W95
+                                                               
+
+ 56    B8    29   216.0667214      256   SCOTTIE 2 CP/JV/PAS/SAW/W95/ROB
+ 56    B8    29   216.070          256   SCOTTIE 2 PS
+
+ 59   (BB)  221   249.6000         256   WRAASE SC-2 60 COLOR WPP/ROB
+ 59   (BB)  221   249.5975         256   WRAASE SC-2 60 COLOR SAW
+
+ 60    3C    60   140.1148942      256   SCOTTIE 1 CP/JV/PAS/PS/SAW/W95/WS/WPP/ROB
+
+ 63    3F   252   126.1750000      256   WRAASE SC-2 120 COLOR JV/PAS
+ 63    3F   252   126.177          256   WRAASE SC-2 120 COLOR W95
+ 63    3F   252   126.178          256   WRAASE SC-2 120 COLOR ROB
+ 63    3F   252   126.179          256   WRAASE SC-2 120 COLOR SAW
+
+ 64    C0     3   960.000          120   AVT 24 COLOR PAS/PS/W95/WPP/ROB
+
+ 68    44    34   480.000          240   AVT 90 COLOR PAS/PS/W95/WPP/ROB
+
+ 72    48    18   384.000          200   AVT 94 COLOR PAS/PS/W95/WPP/ROB
+ 72    48    18   384.000          256   AVT 94 COLOR WS
+
+ 76    CC    51   384.000          400   AVT 188 COLOR PAS/WPP/ROB
+
+ 76    CC    51    57.12653528     256   SCOTTIE DX CP/JV/PAS/SAW/ROB
+ 76    CC    51    57.125          256   SCOTTIE DX PS
+
+ 80    50    10   192.000          400   AVT 125 B&W PAS/WPP/ROB
+
+ 80    50    10   112.905          256   SCOTTIE DX 2 (PAS2 TX ONLY)
+ 80    50    10   112.902          256   SCOTTIE DX 2 PS 
+
+ 85   (55)  170   224.49712643678  500   FAX480 B&W PAS/WPP
+
+ 86   (56)  106   224.49712643678  500   VESTER COLOR FAX
+
+ 93   (DD)  187                    256   PD-50 (320X240) WPP
+
+ 94   (DE)                         616   PD-290 (800X600) WPP
+
+ 95    5F   250   117.99874        496   PD-120 (640X480) PAS/WPP/WS
+
+ 96    60     6    79.550276       496   PD-180 (640x480) PAS/WPP
+
+ 97   (E1)  135    60.000000       496   PD-240 (640X480) WPP
+
+ 98   (E2)   71    74.58827        400   PD-160 (512X384) WPP
+
+ 99   (63)  198    85.34365        256   PD-90 (320X240) WPP
+
+100   (64)   39   128.046          256   J-120 PS/WS
+
+104   (68)   23    84.3830000000   256   TV-1 (LPM = WRAASE 180) MS
+
+105   (69)  150   134.530          256   TV-2 (CLOSE TO M1) MS
+
+113    71   142   146.5648854962   496   P3 PAS/WPP
+
+114    72    78    97.7099236441   496   P5 PAS/WPP
+
+114  *(F2) OP                      256   GVA-125 COLOR (ODD PARITY VIS)
+
+115    F3   207    73.2824427480   496   P7 PAS/WPP
+
+
+                  361.400                AVT HEADER
+108   (6C)                         496   GVA-250 OBSOLETE
+110  *(6E)                         496   GVA-125 B&W OBSOLETE
+                                         SCANMATE 1 (391 SEC)
+                                         SCANMATE 2 (261 SEC)
+
+
+VIS = VERTICAL INTERVAL SIGNALING
+LPM = LINES PER MINUTE (SAME AS USED FOR WEFAX)
+LINES = TOTAL NUMBER OF LINES INCLUDING HEADER (IF ANY)
+
+THE FOLLOWING SYSTEMS USE COMPATABLE VIS AND LINE TIMINGS UNLESS
+INDICATED OTHERWISE:
+
+PAS = PASOKON BOTH CLASSIC (PC) AND LITE (PL)
+PC  = PASOKON CLASSIC ONLY - VERSION 3.1 BETA TEST 3
+PL  = PASOKON LITE ONLY - VERSION 3.1 BETA TEST 3 - NOV 21, 1997
+JV  = JVFAX - VERSION 7.1A REV. 951201
+JVC = JVCOMM32 - VERSION 0.95 BETA
+CP  = CHROMA PIX BETA VERSION 0.92.00H
+PS  = PROSKAN 3.01
+TS  = VESTER VER M TRUSCAN
+AT  = ATFAX 5.3
+MS  = MSCAN 2.20
+W95 = W95SSTV VER 1.01 BUILD 280
+SAW = SAW SCAN (GSHPC) 2.22
+WPP = WIN PIX PRO 2.54
+ROB = ROBOT 1200C WITH EMMERSON V4.2A
+
+
+PAS - DOES NOT TRANSMIT OR DETECT VIS CODES FOR THE WRAASE B&W MODES & FAX480.
+PAS - DOES NOT DETECT VIS FOR MODES OTHER THAN SUPPORTED.  PAS VIS: (XX)
+PAS - DOES NOT DETECT VIS WHILE IN ANY MISC. MODE
+PC  - PASOKON CLASSIC WILL LOCK-UP ON RX OF SCOTTIE DX VIS CODE.
+PL  - PASOKON LITE WILL SWITCH TO AVT 188 MODE IF ALREADY IN AN AVT MODE.
+PL  - WILL SWITCH TO SCOTTIE DX MODE IF IN MODES OTHER THAN AVT & MISC.
+JV  - DOES NOT DETECT VIS FOR ROB 12 B&W AND ROB 24 B&W AS SENT FROM PAS.
+
+
+AVT MODES:     AA7AS   BEN WILLIAMS        Black Belt Systems, Inc.
+                                           bwilliams@blackbelt.com
+                                           AMIGA VIDEO TRANCEIVER
+
+FAX480:        WB8DQT  RALPH TAGGART       gyrobee@aol.com
+
+J-120, SDX2:   KA1LPA  JAMIE PHILBROOK     PROSKAN, WINSKAN, SSTV32
+                                           jamie@cyberzone.net
+
+JVFAX:         DK8JV   EBERHARD BACKESHOFF (HARDIE) JVFAX, JVCOMM32
+                                           E.Backeshoff@pobox.com
+                         
+MARTIN, HQ:    G0OQD   MARTIN EMMERSON     Martin.Emmerson@asn.alcatel.co.uk
+
+SCOTTIE MODES: GM3SBC  EDDY TJ MURPHY
+
+P MODES:       WB2OSZ  JOHN LANGNER        PASOKON - ABSOLUTE VALUE SYSTEMS
+                                           johnl@world.std.com
+
+PD MODES:      K0HEO   DON ROTIER          WIN PIX PRO   GV ASSOCIATES
+                                           k0heo@skypoint.com
+               G4IJE   PAUL TURNER         !PSCAN  paulg4ije@aol.com
+
+ROBOT MODES:                               ROBOT RESEAECH CORPORATION
+
+SAW SCAN:      DL4SAW  GEZA SZABADOS-HAN   GSH-PC  dl4saw@compuserve.com
+
+TV MODES:      PA3GPY  MIKE VERSTEEG       MSCAN      COMBITECH
+                                           combitech@mscan.com
+
+VESTER:        K3BC    BEN VESTER          TRUSCAN benk3bc@erols.com
+
+W95SSTV CP     N7CXI   JIM L BARBER        W95SSTV, CHROMA PIX
+                                           jlbarber@wolfenet.com
+
+WRAASE MODES:  DL2RZ   VOLKER WRAASE       SC-1, HANDBUCH SC-2, SC-4 CHARLY
+
+===========================================================================
+
+Updated list is available at: http://www.tima.com/~djones/line.txt
+
+PLEASE NOTIFY KB4YZ - DAVE JONES OF ANY CHANGES.  djones@tima.com
