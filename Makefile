@@ -1,0 +1,229 @@
+# libsstvenc: Asynchronous Analogue SSTV encoder library.
+# © 2024 Stuart Longland VK4MSL
+# SPDX-License-Identifier: MIT
+
+#############################################################################
+# Compiler options.  
+#############################################################################
+
+# Target compiler components and options.  This can be set to the
+# prefix of a compiler toolchain for cross-compilation purposes.
+# e.g. armv7l-unknown-linux-gnu- (if it's in `${PATH}`) or
+# /opt/gnu-arm-toolchain/bin/armv7l-unknown-linux-gnu- (if it's not).
+CROSS_COMPILE ?=
+
+# C compiler
+CC_NAME ?= gcc
+CC ?= $(CROSS_COMPILE)$(CC_NAME)
+
+# C pre-processor flags
+CPPFLAGS ?=
+
+# C compiler flags
+CFLAGS ?= -O3
+
+# Linker flags
+LDFLAGS ?=
+
+# Compile-time libraries
+LIBS ?= -lm -lc
+
+#############################################################################
+# Other build tool paths
+#############################################################################
+
+CLANG_FORMAT ?= clang-format
+INSTALL ?= install
+LDCONFIG ?= ldconfig
+
+#############################################################################
+# Installation paths.
+#############################################################################
+
+# Where we will put the files on compilation?  We specify both
+# a PREFIX where the files will live _on the actual system_ and
+# a DESTDIR that sets where we will put the files as packages are built.
+PREFIX ?= /usr/local
+DESTDIR ?=
+
+# Where do we put executable binaries we compile?
+BINDIR_REL ?= bin
+BINDIR ?= $(PREFIX)/$(BINDIR_REL)
+
+# Where do we put shared libraries we compile?
+LIBDIR_REL ?= lib
+LIBDIR ?= $(PREFIX)/$(LIBDIR_REL)
+
+# Where do we put headers?
+INCDIR_REL ?= include/libsstvenc
+INCDIR ?= $(PREFIX)/$(INCDIR_REL)
+
+# Where do we put documentation?
+DOCDIR_REL ?= doc/libsstvenc
+DOCDIR ?= $(PREFIX)/$(DOCDIR_REL)
+
+# Where do we put examples?
+EXAMPLEDIR_REL ?= $(DOCDIR_REL)/examples
+EXAMPLEDIR ?= $(PREFIX)/$(EXAMPLEDIR_REL)
+
+# Where do we put the pkgconfig file?
+PKGCONFIG_DIR_REL ?= share/pkgconfig
+PKGCONFIG_DIR ?= $(PREFIX)/$(PKGCONFIG_DIR_REL)
+
+#############################################################################
+# Compile-time features.
+#############################################################################
+
+# Build documentation?  y/n
+BUILD_DOCS ?= y
+
+# Build example programs?  y/n
+BUILD_EXAMPLES ?= y
+
+# Build standard programs?  y/n
+BUILD_PROGS ?= y
+
+# Build the shared library?  y/n  If no, then it'll need to be installed
+# already in order to build EXAMPLES and PROGS.
+BUILD_LIBS ?= y
+
+#############################################################################
+# Build and source paths.
+#############################################################################
+
+TOP_DIR ?= $(realpath .)
+BUILD_DIR ?= $(TOP_DIR)/build
+EXAMPLE_SRC_DIR ?= $(TOP_DIR)/examples
+HEADERS_DIR ?= $(TOP_DIR)/include
+SRC_DIR ?= $(TOP_DIR)/src
+
+#############################################################################
+# Core build targets.
+#############################################################################
+
+.PHONY: all clean docs examples install libs pretty progs
+
+COMPONENTS =
+
+ifeq ($(BUILD_DOCS),y)
+COMPONENTS += docs
+endif
+
+ifeq ($(BUILD_EXAMPLES),y)
+COMPONENTS += examples
+endif
+
+ifeq ($(BUILD_LIBS),y)
+COMPONENTS += libs
+endif
+
+ifeq ($(BUILD_PROGS),y)
+COMPONENTS += progs
+endif
+
+all: $(patsubst %,build_%,$(COMPONENTS))
+
+install: $(patsubst %,install_%,$(COMPONENTS))
+
+clean:
+	-rm -fr $(BUILD_DIR)
+
+pretty:
+	$(CLANG_FORMAT) -i $$( \
+		find $(SRC_DIR) $(HEADERS_DIR) $(EXAMPLE_SRC_DIR) \
+			-type f -name \*.[ch] )
+
+#############################################################################
+# Build directory structure
+#############################################################################
+
+$(BUILD_DIR)/.mkdir:
+	mkdir $(BUILD_DIR)
+ifeq ($(BUILD_DOCS),y)
+	mkdir $(BUILD_DIR)/docs
+endif
+ifeq ($(BUILD_EXAMPLES),y)
+	mkdir $(BUILD_DIR)/examples
+endif
+ifeq ($(BUILD_LIBS),y)
+	mkdir $(BUILD_DIR)/libs
+endif
+ifeq ($(BUILD_PROGS),y)
+	mkdir $(BUILD_DIR)/progs
+endif
+	touch $@
+
+#############################################################################
+# libsstvenc shared library
+#############################################################################
+
+LIB_NAME := sstvenc
+LIB_SO_MAJ := 0
+LIB_SO_MIN := 0
+LIB_SO_REL := 0
+LIB_SONAME_BASE := lib$(LIB_NAME).so
+LIB_SONAME_MAJ := $(LIB_SONAME_BASE).$(LIB_SO_MAJ)
+LIB_SONAME_VER := $(LIB_SONAME_MAJ).$(LIB_SO_MIN).$(LIB_SO_REL)
+
+LIB_HEADERS := $(wildcard $(HEADERS_DIR)/libsstvenc/*.h)
+LIB_SOURCES := $(wildcard $(SRC_DIR)/*.c)
+LIB_OBJECTS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/libs/%.o,$(LIB_SOURCES))
+LIB_DEPENDS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/libs/%.d,$(LIB_SOURCES))
+
+.PHONY: build_libs install_libs
+
+build_libs: $(BUILD_DIR)/libs/$(LIB_SONAME_BASE)
+
+install_libs: build_libs
+	# Libraries
+	$(INSTALL) -g root -o root -m 0755 -d $(DESTDIR)$(LIBDIR)
+	$(INSTALL) -g root -o root -m 0755 -t $(DESTDIR)$(LIBDIR) \
+		$(BUILD_DIR)/libs/$(LIB_SONAME_BASE)
+	$(LDCONFIG) -n $(DESTDIR)$(LIBDIR)
+	# Headers
+	$(INSTALL) -g root -o root -m 0755 -d $(DESTDIR)$(INCDIR)
+	$(INSTALL) -g root -o root -m 0644 -t $(DESTDIR)$(INCDIR) \
+		$(LIB_HEADERS)
+
+$(BUILD_DIR)/libs/$(LIB_SONAME_BASE): $(LIB_OBJECTS)
+	${CC} $(LDFLAGS) -shared -Wl,-soname,$(LIB_SONAME_MAJ) \
+		-o $@ $^ $(LIBS)
+
+$(BUILD_DIR)/libs/%.d: $(SRC_DIR)/%.c | $(BUILD_DIR)/.mkdir
+	${CC} -I$(HEADERS_DIR) $(CPPFLAGS) $(CCFLAGS) \
+		-MM -MT $(patsubst %.d,%.o,$@) -MF $@ -c $<
+
+$(BUILD_DIR)/libs/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)/libs/%.d
+	${CC} -I$(HEADERS_DIR) $(CPPFLAGS) $(CFLAGS) -fPIC -o $@ -c $<
+
+-include $(LIB_DEPENDS)
+
+#############################################################################
+# libsstvenc examples
+#############################################################################
+
+.PHONY: build_examples install_examples
+build_examples:
+
+install_examples:
+	$(INSTALL) -d -g root -o root -m 0755 $(DESTDIR)$(EXAMPLEDIR)
+	$(INSTALL) -g root -o root -m 0644 -t $(DESTDIR)$(EXAMPLEDIR) \
+		$(wildcard $(EXAMPLE_SRC_DIR)/*.c)
+
+#############################################################################
+# libsstvenc programs
+#############################################################################
+
+.PHONY: build_progs install_progs
+build_progs:
+
+install_progs:
+
+#############################################################################
+# libsstvenc documentation
+#############################################################################
+
+.PHONY: build_docs install_docs
+build_docs:
+
+install_docs:

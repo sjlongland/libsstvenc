@@ -12,7 +12,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "timescale.h"
+#include <libsstvenc/timescale.h>
 #include <math.h>
 #include <stdint.h>
 

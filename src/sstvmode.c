@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "sstvmode.h"
-#include "sstvfreq.h"
+#include <libsstvenc/sstvfreq.h>
+#include <libsstvenc/sstvmode.h>
 
 /* SSTV mode specifications -- Robot B/W modes */
 const static struct sstvenc_encoder_pulse sstvenc_sstv_robotbw_fp[] = {

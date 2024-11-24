@@ -10,8 +10,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "oscillator.h"
-#include "pulseshape.h"
+#include <libsstvenc/oscillator.h>
+#include <libsstvenc/pulseshape.h>
 #include <stddef.h>
 #include <stdint.h>
 

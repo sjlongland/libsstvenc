@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "cw.h"
+#include <libsstvenc/cw.h>
 #include <string.h>
 
 /*!

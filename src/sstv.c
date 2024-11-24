@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "sstv.h"
-#include "sstvfreq.h"
 #include <assert.h>
+#include <libsstvenc/sstv.h>
+#include <libsstvenc/sstvfreq.h>
 
 #define SSTVENC_VIS_BIT_START1 (0)
 #define SSTVENC_VIS_BIT_START2 (1)

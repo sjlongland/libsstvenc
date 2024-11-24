@@ -8,15 +8,15 @@
  * Sun Audio file at 48kHz sample rate, 16-bit mono in the specified
  * SSTV mode.
  *
- * Compile with -lgd -lm.
+ * Compile with -lsstvenc -lgd -lm.
  */
 
-#include "gd.h"
-#include "oscillator.h"
-#include "sstv.h"
-#include "timescale.h"
-#include "yuv.h"
 #include <arpa/inet.h>
+#include <gd.h>
+#include <libsstvenc/oscillator.h>
+#include <libsstvenc/sstv.h>
+#include <libsstvenc/timescale.h>
+#include <libsstvenc/yuv.h>
 #include <stdio.h>
 #include <string.h>
 

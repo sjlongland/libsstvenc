@@ -10,8 +10,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "sstvmode.h"
 #include <assert.h>
+#include <libsstvenc/sstvmode.h>
 #include <stdint.h>
 #include <string.h>
 
