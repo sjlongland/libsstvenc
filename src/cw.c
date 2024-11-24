@@ -7,11 +7,13 @@
 #include <string.h>
 
 /*!
- * Symbol table mapping element.  Used in two contexts:
- * - to map a symbol to its morse-code representation
- * - to map a symbol to its alias
- *
- * It can be considered a key-value pair of strings.
+ * @addtogroup cw
+ * @{
+ */
+
+/*!
+ * Symbol table mapping element.  Used to map a symbol to its morse-code
+ * representation.  It can be considered a key-value pair of strings.
  */
 struct sstvenc_cw_pair {
 	const char* key;
@@ -25,7 +27,8 @@ struct sstvenc_cw_pair {
  * The values are strings where the characters have the following meanings:
  * - '.': a tone the length of a 'dit'
  * - '-': a tone the length of a 'dah' (3 dits)
- * - ' ': a dit's worth of space
+ * - ' ': a dit's worth of space, this is a special-case kludge used to handle
+ *   the space character between words.
  */
 static struct sstvenc_cw_pair sstvenc_cw_symbols[] = {
     /* Whitespace */
@@ -139,6 +142,173 @@ static struct sstvenc_cw_pair sstvenc_cw_mbsymbols[] = {
     {.key = NULL, .value = NULL},
 };
 
+/*!
+ * Compare the character sequence given to the candidate symbol.
+ *
+ * @param[in]	sym		Text symbol to be compared.  May be
+ * 				followed by other symbols.  Assumed UTF-8
+ * 				encoding.
+ *
+ * @param[in]	candidate	Candidate morse code symbol being compared.
+ * The string @a sym is a match if it starts with the sstvenc_cw_pair#key
+ * given by @a candidate.
+ *
+ * @retval	candidate	The candidate is a match.
+ * @retval	NULL		Not a match.
+ */
+static const struct sstvenc_cw_pair*
+sstvenc_cw_symbol_match(const char*		      sym,
+			const struct sstvenc_cw_pair* candidate);
+
+/*!
+ * Look up the symbol at the start of @a sym in the table @a table.
+ *
+ * @param[in]	sym		Text symbol being looked up.  May be followed
+ * 				by other symbols.  Assumed UTF-8 encoding.
+ *
+ * @param[in]	table		Symbol table to scan for possible matches.
+ * 				The table must be terminated by a
+ * sstvenc_cw_pair with both sstvenc_cw_pair#key and sstvenc_cw_pair#value set
+ * to NULL.
+ *
+ * @param[in]	len		The fixed symbol length to check.
+ * 				For sstvenc_cw_symbols, all values are single
+ * 				byte ASCII characters, so in that situation,
+ * set this parameter to 1.  This optimises the most likely case: plain
+ * English characters.
+ *
+ * 				If the symbols are a variable length, which is
+ * 				the case for sstvenc_cw_mbsymbols, set this to
+ * 				0 instead.
+ *
+ * @returns	The matching sstvenc_cw_pair for the symbol seen at the start
+ * 		of @a sym.
+ *
+ * @retval	NULL		None of the symbols in @a table match the
+ * 				character sequence at @a sym.
+ */
+static const struct sstvenc_cw_pair*
+sstvenc_cw_symbol_lookup(const char* sym, const struct sstvenc_cw_pair* table,
+			 uint8_t len);
+
+/*!
+ * Try to locate the CW symbol that represents the text at the start of the
+ * string @a sym.  First, sstvenc_cw_symbols is searched for the most likely
+ * case (English letters, digits and punctuation), then if that fails,
+ * sstvenc_cw_mbsymbols is scanned (non-English symbols and prosigns).
+ *
+ * @param[in]	sym		The text to be matched to a morse-code symbol.
+ * 				Assumed to be UTF-8 encoding.
+ *
+ * @returns	The matching sstvenc_cw_pair for the symbol seen at the start
+ * 		of @a sym.
+ *
+ * @retval	NULL		The character sequence seen at the start of
+ * 				@a sym does not match any known morse code
+ * 				symbol.
+ */
+static const struct sstvenc_cw_pair* sstvenc_cw_get_symbol(const char* sym);
+
+/*!
+ * Scan the string given in sstvenc_cw_mod#text_string by repeatedly calling
+ * sstvenc_cw_symbol_lookup.
+ *
+ * If the text at sstvenc_cw_mod#text_string does not match a known symbol,
+ * we increment that and try again (until we run out of characters in
+ * sstvenc_cw_mod#text_string).
+ *
+ * If we run out of characters, we move the state machine to
+ * SSTVENC_CW_MOD_STATE_DONE -- we are finished.
+ *
+ * Otherwise, we load the symbol into sstvenc_cw_mod#symbol, reset
+ * sstvenc_cw_mod#pos and enter SSTVENC_CW_MOD_STATE_MARK.
+ */
+static void sstvenc_cw_get_next_sym(struct sstvenc_cw_mod* const cw);
+
+/*!
+ * Prepare to transmit a "mark" (or a gap between marks).
+ *
+ * sstvenc_cw_mod#pos gives the position in the current morse-code symbol
+ * being processed.  It points to either `' '`, `'.'` or `'-'`.
+ *
+ * For a `' '`: the oscillator amplitude is set to 0.0 and we reset the
+ * pulse shaper for the duration of a single dit.
+ *
+ * For a `'.'`: the oscillator amplitude is set to 1.0 and we reset the
+ * pulse shaper for the duration of a single dit.
+ *
+ * For a `'-'`: the oscillator amplitude is set to 1.0 and we reset the
+ * pulse shaper for the duration of three dits.
+ */
+static void sstvenc_cw_start_mark(struct sstvenc_cw_mod* const cw);
+
+/*!
+ * Handle the end of a sub-symbol (dah or dit).  This resets the pulse
+ * shaper then increments sstvenc_cw_mod#pos.  If there's more sub-symbols
+ * we go back to state SSTVENC_CW_MOD_STATE_MARK, otherwise we enter
+ * state SSTVENC_CW_MOD_STATE_DAHSPACE.
+ */
+static void sstvenc_cw_end_subsym(struct sstvenc_cw_mod* const cw);
+
+/*!
+ * Called at the end of a morse code symbol.  This advances
+ * sstvenc_cw_mod#text_string by the length of the sstvenc_cw_pair#key
+ * pointed to by sstvenc_cw_mod#symbol.
+ *
+ * sstvenc_cw_mod#symbol is then dropped and we move on in state
+ * SSTVENC_CW_MOD_STATE_NEXT_SYM.
+ */
+static void sstvenc_cw_end_symbol(struct sstvenc_cw_mod* const cw);
+
+/*!
+ * Sub-state machine built around the pulse shaper state machine to handle
+ * transmission of a mark.  This routine initialises the pulse shaper
+ * by calling sstvenc_cw_start_mark then will step the pulse shaper through
+ * its state machine by calling sstvenc_ps_compute.
+ *
+ * The envelope is modulated by the oscillator by calling sstvenc_osc_compute
+ * then multiplying the outputs, storing these in sstvenc_cw_mod#output.
+ *
+ * At the end of the envelope, it resets sstvenc_cw_mod#output.
+ * If we were actually transmitting a space, we move to the next sub-symbol
+ * otherwise we enter SSTVENC_CW_MOD_STATE_DITSPACE to emit the
+ * inter-sub-symbol dit space.
+ */
+static void sstvenc_cw_handle_state_mark(struct sstvenc_cw_mod* const cw);
+
+/*!
+ * Handling of the spaces between sub-symbols (individual dahs and dits). This
+ * is the length of one "dit", and is measured by
+ * sstvenc_pulseshape#sample_idx which is incremented each time
+ * sstvenc_ps_compute is called whilst the shaper remains in the
+ * SSTVENC_PS_PHASE_DONE state.
+ *
+ * When it passes sstvenc_cw_mod#dit_period, we call sstvenc_cw_end_subsym to
+ * move to the next sub-symbol.
+ */
+static void sstvenc_cw_handle_state_ditspace(struct sstvenc_cw_mod* const cw);
+
+/*!
+ * Handling of the spaces between symbols (morse code symbols).  This is the
+ * length of one "dah" (3 "dits"), and is measured by
+ * sstvenc_pulseshape#sample_idx which is incremented each time
+ * sstvenc_ps_compute is called whilst the shaper remains in the
+ * SSTVENC_PS_PHASE_DONE state.
+ *
+ * As we enter this state _after_ being in the SSTVENC_CW_MOD_STATE_DITSPACE
+ * state, one "dit"'s worth of space has already been emitted, so we carry on.
+ *
+ * When it passes sstvenc_cw_mod#dit_period * 2, we call sstvenc_cw_end_symbol
+ * to move to the next symbol.
+ */
+static void sstvenc_cw_handle_state_dahspace(struct sstvenc_cw_mod* const cw);
+
+/*!
+ * Handling of the end of transmission.  We reset state variables and the
+ * output so it emits zeroes from now on.
+ */
+static void sstvenc_cw_handle_state_done(struct sstvenc_cw_mod* const cw);
+
 static const struct sstvenc_cw_pair*
 sstvenc_cw_symbol_match(const char*		      sym,
 			const struct sstvenc_cw_pair* candidate) {
@@ -208,8 +378,12 @@ static void sstvenc_cw_get_next_sym(struct sstvenc_cw_mod* const cw) {
 		/* We have a character, reset the position */
 		cw->state = SSTVENC_CW_MOD_STATE_MARK;
 		cw->pos	  = 0;
+
+		/* Process the mark so we have a valid output sample */
+		sstvenc_cw_handle_state_mark(cw);
 	} else {
 		cw->state = SSTVENC_CW_MOD_STATE_DONE;
+		sstvenc_cw_handle_state_done(cw);
 	}
 }
 
@@ -245,17 +419,20 @@ static void sstvenc_cw_end_subsym(struct sstvenc_cw_mod* const cw) {
 	if (cw->symbol->value[cw->pos]) {
 		/* We need to produce another mark */
 		cw->state = SSTVENC_CW_MOD_STATE_MARK;
+		sstvenc_cw_handle_state_mark(cw);
 	} else {
 		/* End of the symbol */
 		cw->state = SSTVENC_CW_MOD_STATE_DAHSPACE;
+		sstvenc_cw_handle_state_dahspace(cw);
 	}
 }
 
 static void sstvenc_cw_end_symbol(struct sstvenc_cw_mod* const cw) {
 	sstvenc_ps_reset(&(cw->ps), INFINITY, SSTVENC_TS_UNIT_SECONDS);
-	cw->state	 = SSTVENC_CW_MOD_STATE_NEXT_SYM;
 	cw->text_string += strlen(cw->symbol->key);
 	cw->symbol	 = NULL;
+	cw->state	 = SSTVENC_CW_MOD_STATE_NEXT_SYM;
+	sstvenc_cw_get_next_sym(cw);
 }
 
 static void sstvenc_cw_handle_state_mark(struct sstvenc_cw_mod* const cw) {
@@ -282,6 +459,7 @@ static void sstvenc_cw_handle_state_mark(struct sstvenc_cw_mod* const cw) {
 		} else {
 			sstvenc_ps_compute(&(cw->ps));
 			cw->state = SSTVENC_CW_MOD_STATE_DITSPACE;
+			sstvenc_cw_handle_state_ditspace(cw);
 		}
 	}
 }
@@ -304,6 +482,12 @@ sstvenc_cw_handle_state_dahspace(struct sstvenc_cw_mod* const cw) {
 	}
 }
 
+static void sstvenc_cw_handle_state_done(struct sstvenc_cw_mod* const cw) {
+	cw->output	= 0.0;
+	cw->text_string = NULL;
+	cw->symbol	= NULL;
+}
+
 void sstvenc_cw_compute(struct sstvenc_cw_mod* const cw) {
 	switch (cw->state) {
 	case SSTVENC_CW_MOD_STATE_INIT:
@@ -320,9 +504,11 @@ void sstvenc_cw_compute(struct sstvenc_cw_mod* const cw) {
 		sstvenc_cw_handle_state_dahspace(cw);
 		break;
 	case SSTVENC_CW_MOD_STATE_DONE:
-		cw->output	= 0.0;
-		cw->text_string = NULL;
-		cw->symbol	= NULL;
+		sstvenc_cw_handle_state_done(cw);
 		return;
 	}
 }
+
+/*!
+ * @}
+ */
