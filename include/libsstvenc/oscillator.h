@@ -2,15 +2,14 @@
 #define _SSTVENC_OSCILLATOR_H
 
 /*!
- * @defgroup oscillator Asynchronous oscillator implementation
+ * @defgroup oscillator Oscillator implementation
  * @{
  *
- * Oscillator implementation with fixed-point phase computation.  This is a
- * simple module that can be used to produce a single sinusoid tone at a given
- * frequency for a given sample rate.
+ * This is a simple module that can be used to produce a single sinusoid tone
+ * at a given frequency for a given sample rate.
  *
  * The phase is computed at each sample step, and increments modulo 2-Pi.
- * Frequency and amplitude can be modified at any time, they take effect
+ * Frequency, amplitude and phase can be modified at any time, they take effect
  * on the next call to @ref sstvenc_osc_compute.
  */
 
