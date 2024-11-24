@@ -2,7 +2,10 @@
 #define _SSTVENC_SSTVFREQ_H
 
 /*!
- * SSTV frequency specifications.
+ * @addtogroup sstv
+ * @{
+ * @defgroup sstvfreq SSTV frequency specifications.
+ * @{
  */
 
 /*
@@ -25,6 +28,10 @@
 /*!
  * Compute the frequency that corresponds to the given signal level
  * given in unsigned Q8 fixed-point.
+ *
+ * @param[in]	level	Signal level in Q8 fixed-point.
+ *
+ * @returns	Output frequency in hertz.
  */
 static inline uint16_t sstvenc_level_freq(uint8_t level) {
 	double flevel = level / ((float)UINT8_MAX);
@@ -40,5 +47,10 @@ static inline uint16_t sstvenc_level_freq(uint8_t level) {
 				  + 0.5);
 	}
 }
+
+/*!
+ * @}
+ * @}
+ */
 
 #endif
