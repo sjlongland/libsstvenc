@@ -2,7 +2,7 @@
 #define _SSTVENC_PULSESHAPE_H
 
 /*!
- * @defgroup pulseshape Asynchronous Pulse Shaper.
+ * @defgroup pulseshape Asynchronous Pulse Shaper
  * @{
  *
  * The purpose of this module is to drive the amplitude of an oscillator to
