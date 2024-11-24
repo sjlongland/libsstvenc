@@ -2,7 +2,10 @@
 #define _SSTVENC_SSTVMODE_H
 
 /*!
- * SSTV mode specifications.
+ * @addtogroup sstv
+ * @{
+ * @defgroup sstvmode SSTV mode specifications.
+ * @{
  */
 
 /*
@@ -21,8 +24,7 @@
 #define SSTVENC_PERIOD_FSKID_BIT (22000u)
 
 /*!
- * @defgroup sstv_colour_space_order Colour Space/Order bitmap
- * @addtogroup sstv_colour_space_order
+ * @defgroup sstv_cso Colour Space/Order bitmap
  * @{
  * Colour space and order definitions.  A lot of SSTV modes may be
  * characterised by what colour space they use (monochrome, RGB or YUV)
@@ -31,13 +33,28 @@
  * For flexibility, a bitmap has been defined using a `uint16_t`.
  */
 #define SSTVENC_CSO_BIT_MODE	 (12)
+
+/*!
+ * Return the bit number for the nth channel in the bitmap.
+ *
+ * @param[in]	n	The channel number (0-3 inclusive)
+ */
 #define SSTVENC_CSO_BIT_C(n)	 ((n) * 3)
 
 /*! Bit mask for the colour space mode bits */
 #define SSTVENC_CSO_MASK_MODE	 (0170000)
 
-/*! Bit mask for the Nth colour channel */
+/*!
+ * Bit mask for the Nth colour channel.
+ *
+ * @param[in]	n	The channel number (0-3 inclusive)
+ */
 #define SSTVENC_CSO_MASK_C(n)	 (07 << ((n) * 3))
+
+/*!
+ * @defgroup sstv_cso_colourspace Colour-space modes supported
+ * @{
+ */
 
 /*! SSTV mode is monochrome (1 channel, no colour) */
 #define SSTVENC_CSO_MODE_MONO	 (0 << SSTVENC_CSO_BIT_MODE)
@@ -57,6 +74,15 @@
  */
 #define SSTVENC_CSO_MODE_YUV2	 (3 << SSTVENC_CSO_BIT_MODE)
 
+/*!
+ * @}
+ */
+
+/*!
+ * @defgroup sstv_cso_chsrc Channel source
+ * @{
+ */
+
 #define SSTVENC_CSO_CH_NONE	 (0) /*!< Channel not used */
 #define SSTVENC_CSO_CH_Y	 (1) /*!< Y channel (luminance) */
 #define SSTVENC_CSO_CH_U	 (2) /*!< U or Cr channel (Y - red) */
@@ -66,9 +92,38 @@
 #define SSTVENC_CSO_CH_B	 (6) /*!< B channel (blue) */
 #define SSTVENC_CSO_CH_Y2	 (7) /*!< Y channel of next row */
 
+/*!
+ * @}
+ */
+
+/*!
+ * Return the source allocated to the given channel number.
+ *
+ * @param[in]	n	The channel number being requested.
+ * @param[in]	mode	The mode colour space/order bitmap (i.e.
+ * 			sstvenc_mode#colour_space_order
+ *
+ * @returns	One of the enumerations given by @ref sstv_cso_chsrc
+ */
 #define SSTVENC_MODE_GET_CH(n, mode)                                         \
 	(((mode) & SSTVENC_CSO_MASK_C(n)) >> SSTVENC_CSO_BIT_C(n))
 
+/*!
+ * Pack the colour space and 4 channels' sources into a single `uint16_t`
+ * for encoding sstvenc_mode#colour_space_order.
+ *
+ * @param[in]	cs	Colour space, see @ref sstv_cso_colourspace
+ * @param[in]	c0	Channel source for the first channel, one of
+ * 			@ref sstv_cso_chsrc
+ * @param[in]	c1	Channel source for the second channel, one of
+ * 			@ref sstv_cso_chsrc
+ * @param[in]	c2	Channel source for the third channel, one of
+ * 			@ref sstv_cso_chsrc
+ * @param[in]	c3	Channel source for the fourth channel, one of
+ * 			@ref sstv_cso_chsrc
+ *
+ * @returns	Bitmap for sstvenc_mode#colour_space_order
+ */
 #define SSTVENC_MODE_ORDER(cs, c0, c1, c2, c3)                               \
 	(((cs) & SSTVENC_CSO_MASK_MODE)                                      \
 	 | (((c0) << SSTVENC_CSO_BIT_C(0)) & SSTVENC_CSO_MASK_C(0))          \
@@ -84,7 +139,12 @@
  * Convenience structure, encodes the duration and frequency of a pulse.
  */
 struct sstvenc_encoder_pulse {
+	/*! The pulse frequency in hertz. */
 	uint32_t frequency;
+	/*!
+	 * The duration of the pulse in nanoseconds.  A duration of 0ns
+	 * is used to terminate an array of pulse definitions.
+	 */
 	uint32_t duration_ns;
 };
 
@@ -95,42 +155,54 @@ struct sstvenc_encoder_pulse {
 struct sstvenc_mode {
 	/*! Human-readable description of a mode, e.g. Martin M1 */
 	const char*			    description;
+
 	/*! Short-hand name of a SSTV mode, e.g. M1 */
 	const char*			    name;
+
 	/*!
-	 * Initial sequence pulses prior to first scan line.
+	 * Initial sequence pulses prior to first scan line.  May be NULL
+	 * if the mode does not include pulses prior to the first scan line.
 	 */
 	const struct sstvenc_encoder_pulse* initseq;
+
 	/*!
 	 * Front-porch sync pulses that happen before channel 0 is sent.  An
 	 * array terminated with a 0Hz 0sec "pulse".  May be NULL if there are
 	 * no start-of-scan pulses before channel 0.
 	 */
 	const struct sstvenc_encoder_pulse* frontporch;
+
 	/*!
 	 * Sync pulses between channel 0 and channel 1.  May be NULL if
 	 * there are no pulses between channels 0 and 1.
 	 */
 	const struct sstvenc_encoder_pulse* gap01;
+
 	/*!
 	 * Sync pulses between channel 1 and channel 2.  May be NULL if
 	 * there are no pulses between channels 1 and 2.
 	 */
 	const struct sstvenc_encoder_pulse* gap12;
+
 	/*!
 	 * Sync pulses between channel 2 and channel 3.  May be NULL if
 	 * there are no pulses between channels 2 and 3.
 	 */
 	const struct sstvenc_encoder_pulse* gap23;
+
 	/*!
 	 * Back-porch sync pulses after channel 2 (or after channel 0 for
-	 * mono SSTV modes).
+	 * mono SSTV modes).  May be NULL if there's no backporch at the
+	 * end of a scan line.
 	 */
 	const struct sstvenc_encoder_pulse* backporch;
+
 	/*!
-	 * Final sequence pulses following last scan line.
+	 * Final sequence pulses following last scan line.  May be NULL if
+	 * there is no final pulse sequence after the final scan line.
 	 */
 	const struct sstvenc_encoder_pulse* finalseq;
+
 	/*!
 	 * Scanline periods for each of the three channels.  For mono modes,
 	 * only the first is used.
@@ -141,15 +213,18 @@ struct sstvenc_mode {
 	 * Width of the SSTV image sent in pixels.
 	 */
 	uint16_t			    width;
+
 	/*!
 	 * Height of the SSTV image sent in pixels.
 	 */
 	uint16_t			    height;
+
 	/*!
 	 * The colour space mode and order used.  This is a bitmap, see
 	 * @ref SSTVENC_MODE_ORDER
 	 */
 	uint16_t			    colour_space_order;
+
 	/*!
 	 * The VIS code sent at the start of the SSTV transmission.
 	 */
@@ -189,6 +264,10 @@ sstvenc_pulseseq_get_txtime(const struct sstvenc_encoder_pulse* seq) {
 
 /*!
  * Compute the transmission time of the specified mode in nanoseconds.
+ *
+ * @param[in]	mode	The SSTV mode being computed
+ * @param[in]	fsk_id	The FSK ID being transmitted, for length calculations.
+ * 			If no FSK is enabled, set this to NULL.
  */
 static inline uint64_t
 sstvenc_mode_get_txtime(const struct sstvenc_mode* const mode,
@@ -287,6 +366,12 @@ sstvenc_mode_get_fb_sz(const struct sstvenc_mode* const mode) {
 
 /*!
  * Fetch the offset into the framebuffer for the given pixel.
+ *
+ * @param[in]	mode	SSTV mode in use
+ * @param[in]	x, y	Pixel co-ordinates
+ *
+ * @returns	The array offset into the framebuffer that describes this
+ * 		pixel position.
  */
 static inline uint32_t
 sstvenc_get_pixel_posn(const struct sstvenc_mode* const mode, uint16_t x,
@@ -305,5 +390,10 @@ sstvenc_get_pixel_posn(const struct sstvenc_mode* const mode, uint16_t x,
 
 	return idx;
 }
+
+/*!
+ * @}
+ * @}
+ */
 
 #endif
