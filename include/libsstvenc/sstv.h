@@ -27,8 +27,8 @@
  *   represents a pixel's YUV colour in the order: Y (luminance), U (R-Y), V
  *   (B-Y).
  *
- * The routines in @ref yuv may be useful for converting between RGB and YUV
- * or monochrome modes in your application.
+ * The routines in @ref sstv_yuv may be useful for converting between RGB and
+ * YUV or monochrome modes in your application.
  *
  * Calling code initialises a context by calling @ref sstvenc_encoder_init
  * then repeatedly calling @ref sstvenc_encoder_next_pulse to compute each
