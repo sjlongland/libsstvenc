@@ -95,6 +95,7 @@ BUILD_LIBS ?= y
 
 TOP_DIR ?= $(realpath .)
 BUILD_DIR ?= $(TOP_DIR)/build
+PROGS_DIR ?= $(TOP_DIR)/progs
 EXAMPLE_SRC_DIR ?= $(TOP_DIR)/examples
 HEADERS_DIR ?= $(TOP_DIR)/include
 SRC_DIR ?= $(TOP_DIR)/src
@@ -135,7 +136,7 @@ clean:
 pretty:
 	$(CLANG_FORMAT) -i $$( \
 		find $(SRC_DIR) $(HEADERS_DIR) $(EXAMPLE_SRC_DIR) \
-			-type f -name \*.[ch] )
+			$(PROGS_DIR) -type f -name \*.[ch] )
 
 #############################################################################
 # Build directory structure
@@ -220,10 +221,35 @@ install_examples:
 # libsstvenc programs
 #############################################################################
 
-.PHONY: build_progs install_progs
-build_progs:
+PROGS_SOURCES := $(wildcard $(PROGS_DIR)/*.c)
+PROGS_OBJECTS := $(patsubst $(PROGS_DIR)/%.c,\
+			$(BUILD_DIR)/progs/%.o,$(PROGS_SOURCES))
+PROGS_DEPENDS := $(patsubst $(PROGS_DIR)/%.c,\
+		 	$(BUILD_DIR)/progs/%.d,$(PROGS_SOURCES))
 
-install_progs:
+# png-to-sstv needs libgd
+LIBGD_CFLAGS := $(shell pkg-config gdlib --cflags)
+LIBGD_LIBS := $(shell pkg-config gdlib --libs)
+
+.PHONY: build_progs install_progs
+build_progs: $(BUILD_DIR)/progs/png-to-sstv
+
+install_progs: build_progs
+	$(INSTALL) -d -g root -o root -m 0755 $(DESTDIR)$(BINDIR)
+	$(INSTALL) -g root -o root -m 0644 -t $(DESTDIR)$(BINDIR) \
+		$(BUILD_DIR)/progs/png-to-sstv
+
+$(BUILD_DIR)/progs/png-to-sstv: $(BUILD_DIR)/progs/png-to-sstv.o \
+		| $(BUILD_DIR)/libs/$(LIB_SONAME_BASE)
+	$(CC) -L$(BUILD_DIR)/libs -o $@ $^ -lsstvenc $(LIBGD_LIBS) -lm
+
+$(BUILD_DIR)/progs/%.d: $(PROGS_DIR)/%.c | $(BUILD_DIR)/.mkdir
+	${CC} -I$(HEADERS_DIR) $(CPPFLAGS) $(CFLAGS) $(LIBGD_CFLAGS) \
+		-MM -MT $(patsubst %.d,%.o,$@) -MF $@ -c $<
+
+$(BUILD_DIR)/progs/%.o: $(PROGS_DIR)/%.c | $(BUILD_DIR)/progs/%.d
+	${CC} -I$(HEADERS_DIR) $(CPPFLAGS) $(CFLAGS) $(LIBGD_CFLAGS) \
+		-o $@ -c $<
 
 #############################################################################
 # libsstvenc documentation
@@ -234,6 +260,7 @@ build_docs: $(BUILD_DIR)/docs/html/index.html
 
 $(BUILD_DIR)/docs/html/index.html: $(BUILD_DIR)/docs/Doxyfile \
 		$(LIB_HEADERS) $(LIB_SOURCES) $(EXAMPLE_SOURCES) \
+		$(PROGS_SOURCES) \
 		$(shell find $(TOP_DIR) -type f -name \*.md)
 	cd $(TOP_DIR) ; $(DOXYGEN) $<
 
