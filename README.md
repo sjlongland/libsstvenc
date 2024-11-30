@@ -5,7 +5,8 @@
 The idea of this project is to provide a reasonable quality SSTV encoder
 implementation in C for use in custom SSTV applications.
 
-- Source code: https://github.com/sjlongland/libsstvenc
+- Source code: https://github.com/sjlongland/libsstvenc or
+  https://codeberg.org/sjlongland/libsstvenc
 - Documentation: https://static.vk4msl.com/projects/libsstvenc/
 
 ## SSTV Modes
