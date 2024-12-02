@@ -975,8 +975,8 @@ static void sstvenc_encoder_fsk_load_next(struct sstvenc_encoder* const enc) {
 
 static void sstvenc_encoder_begin_fsk(struct sstvenc_encoder* const enc) {
 	sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_FSK);
-	enc->vars.fsk.byte    = 0;
-	enc->vars.fsk.bit     = 0;
+	enc->vars.fsk.byte = 0;
+	enc->vars.fsk.bit  = 0;
 
 	if (enc->fsk_id) {
 #ifdef _DEBUG_SSTV
