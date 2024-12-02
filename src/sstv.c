@@ -396,8 +396,10 @@ static void sstvenc_encoder_begin_seq(struct sstvenc_encoder* const	  enc,
 				      sstvenc_encoder_callback* on_done) {
 	enc->seq = seq;
 	if ((!enc->seq) || (!enc->seq->duration_ns)) {
-		/* Nothing to do */
-		on_done(enc);
+		if (on_done) {
+			/* Nothing to do */
+			on_done(enc);
+		}
 	} else {
 		enc->seq_done_cb = on_done;
 	}
