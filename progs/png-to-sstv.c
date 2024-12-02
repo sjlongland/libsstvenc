@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
 	int		     opt_idx	   = 0;
 	uint8_t		     total_audio_channels;
 	uint8_t		     select_audio_channels;
-	uint32_t	     audio_encoding = SSTVENC_SUNAU_FMT_S16;
+	uint8_t		     audio_encoding = SSTVENC_SUNAU_FMT_S16;
 
 	static struct option long_options[] = {
 	    {.name    = "bits",
