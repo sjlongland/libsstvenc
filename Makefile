@@ -269,7 +269,9 @@ LIBGD_CFLAGS := $(shell pkg-config gdlib --cflags)
 LIBGD_LIBS := $(shell pkg-config gdlib --libs)
 
 .PHONY: build_progs install_progs
-build_progs: $(BUILD_DIR)/progs/png-to-sstv
+build_progs: \
+	$(BUILD_DIR)/progs/png-to-sstv \
+	$(BUILD_DIR)/progs/morse
 
 install_progs: build_progs
 	$(INSTALL) -d $(INSTALL_ARGS_OWNERSHIP) \
@@ -278,11 +280,16 @@ install_progs: build_progs
 	$(INSTALL) $(INSTALL_ARGS_OWNERSHIP) \
 		$(INSTALL_ARGS_EXEC_PERMS) \
 		-t $(DESTDIR)$(BINDIR) \
-		$(BUILD_DIR)/progs/png-to-sstv
+		$(BUILD_DIR)/progs/png-to-sstv \
+		$(BUILD_DIR)/progs/morse
 
 $(BUILD_DIR)/progs/png-to-sstv: $(BUILD_DIR)/progs/png-to-sstv.o \
 		| $(BUILD_DIR)/libs/$(LIB_SONAME_BASE)
 	$(CC) -L$(BUILD_DIR)/libs -o $@ $^ -lsstvenc $(LIBGD_LIBS) -lm
+
+$(BUILD_DIR)/progs/morse: $(BUILD_DIR)/progs/morse.o \
+		| $(BUILD_DIR)/libs/$(LIB_SONAME_BASE)
+	$(CC) -L$(BUILD_DIR)/libs -o $@ $^ -lsstvenc -lm
 
 $(BUILD_DIR)/progs/%.d: $(PROGS_DIR)/%.c | $(BUILD_DIR)/.mkdir
 	${CC} -I$(HEADERS_DIR) $(CPPFLAGS) $(CFLAGS) $(LIBGD_CFLAGS) \
