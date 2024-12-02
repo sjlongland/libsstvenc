@@ -367,21 +367,22 @@ int main(int argc, char* argv[]) {
 		/* Compute the next oscillator output sample */
 		sstvenc_osc_compute(&osc);
 
+		/* Fill the audio frame */
 		for (uint8_t ch = 0; ch < total_audio_channels; ch++) {
 			if (select_audio_channels & (1 << ch)) {
 				samples[ch] = osc.output;
 			} else {
 				samples[ch] = 0.0;
 			}
+		}
 
-			int au_res = sstvenc_sunau_enc_write(
-			    &au, total_audio_channels, samples);
-			if (au_res < 0) {
-				fprintf(stderr,
-					"Failed to write audio samples: %s\n",
-					strerror(-au_res));
-				return (2);
-			}
+		/* Write the frame out */
+		int au_res = sstvenc_sunau_enc_write(
+		    &au, total_audio_channels, samples);
+		if (au_res < 0) {
+			fprintf(stderr, "Failed to write audio samples: %s\n",
+				strerror(-au_res));
+			return (2);
 		}
 
 		/* Count this sample */
