@@ -9,6 +9,11 @@
  * SPDX-License-Identifier: MIT
  */
 
+#ifdef _DEBUG_SSTV
+#include <inttypes.h>
+#include <stdio.h>
+#endif
+
 #include <assert.h>
 #include <libsstvenc/sstv.h>
 #include <libsstvenc/sstvfreq.h>
@@ -378,6 +383,9 @@ static const struct sstvenc_encoder_pulse*
 
 static void sstvenc_encoder_new_phase(struct sstvenc_encoder* const enc,
 				      uint8_t			    phase) {
+#ifdef _DEBUG_SSTV
+	printf("%s: entering phase 0x%02x\n", __func__, phase);
+#endif
 	enc->phase = phase;
 }
 
@@ -396,11 +404,20 @@ static void sstvenc_encoder_begin_seq(struct sstvenc_encoder* const	  enc,
 				      sstvenc_encoder_callback* on_done) {
 	enc->seq = seq;
 	if ((!enc->seq) || (!enc->seq->duration_ns)) {
+#ifdef _DEBUG_SSTV
+		printf("%s: empty sequence\n", __func__);
+#endif
 		if (on_done) {
+#ifdef _DEBUG_SSTV
+			printf("%s: calling on_done callback\n", __func__);
+#endif
 			/* Nothing to do */
 			on_done(enc);
 		}
 	} else {
+#ifdef _DEBUG_SSTV
+		printf("%s: begin sequence %p\n", __func__, (void*)seq);
+#endif
 		enc->seq_done_cb = on_done;
 	}
 }
@@ -410,13 +427,23 @@ sstvenc_encoder_next_seq_pulse(struct sstvenc_encoder* const enc) {
 	if (enc->seq && enc->seq->duration_ns) {
 		const struct sstvenc_encoder_pulse* pulse = enc->seq;
 		enc->seq++;
+#ifdef _DEBUG_SSTV
+		printf("%s: returning pulse at %p\n", __func__, (void*)pulse);
+#endif
 		return pulse;
 	} else if (enc->seq_done_cb) {
+#ifdef _DEBUG_SSTV
+		printf("%s: end of pulse sequence, calling callback\n",
+		       __func__, (void*)(enc->seq_done_cb));
+#endif
 		sstvenc_encoder_callback* seq_done_cb = enc->seq_done_cb;
 		enc->seq_done_cb		      = NULL;
 		enc->seq			      = NULL;
 		seq_done_cb(enc);
 	} else {
+#ifdef _DEBUG_SSTV
+		printf("%s: end of pulse sequence, no callback\n", __func__);
+#endif
 		enc->seq_done_cb = NULL;
 		enc->seq	 = NULL;
 	}
@@ -424,6 +451,9 @@ sstvenc_encoder_next_seq_pulse(struct sstvenc_encoder* const enc) {
 }
 
 static void sstvenc_encoder_begin_vis(struct sstvenc_encoder* const enc) {
+#ifdef _DEBUG_SSTV
+	printf("%s: begin sending VIS header\n", __func__);
+#endif
 	enc->phase	  = SSTVENC_ENCODER_PHASE_VIS;
 	enc->vars.vis.bit = SSTVENC_VIS_BIT_START1;
 }
@@ -458,21 +488,33 @@ static const struct sstvenc_encoder_pulse*
 sstvenc_encoder_next_vis_pulse(struct sstvenc_encoder* const enc) {
 	switch (enc->vars.vis.bit) {
 	case SSTVENC_VIS_BIT_START1:
+#ifdef _DEBUG_SSTV
+		printf("%s: VIS header start bit 1\n", __func__);
+#endif
 		enc->pulse.frequency   = SSTVENC_FREQ_VIS_START;
 		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_START;
 		enc->vars.vis.bit++;
 		return &(enc->pulse);
 	case SSTVENC_VIS_BIT_START2:
+#ifdef _DEBUG_SSTV
+		printf("%s: VIS header start bit 2\n", __func__);
+#endif
 		enc->pulse.frequency   = SSTVENC_FREQ_SYNC;
 		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_SYNC;
 		enc->vars.vis.bit++;
 		return &(enc->pulse);
 	case SSTVENC_VIS_BIT_START3:
+#ifdef _DEBUG_SSTV
+		printf("%s: VIS header start bit 3\n", __func__);
+#endif
 		enc->pulse.frequency   = SSTVENC_FREQ_VIS_START;
 		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_START;
 		enc->vars.vis.bit++;
 		return &(enc->pulse);
 	case SSTVENC_VIS_BIT_START4:
+#ifdef _DEBUG_SSTV
+		printf("%s: VIS header start bit 4\n", __func__);
+#endif
 		enc->pulse.frequency   = SSTVENC_FREQ_SYNC;
 		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_BIT;
 		enc->vars.vis.bit++;
@@ -484,21 +526,33 @@ sstvenc_encoder_next_vis_pulse(struct sstvenc_encoder* const enc) {
 	case SSTVENC_VIS_BIT_DATA5:
 	case SSTVENC_VIS_BIT_DATA6:
 	case SSTVENC_VIS_BIT_DATA7:
+#ifdef _DEBUG_SSTV
+		printf("%s: VIS header data bit\n", __func__);
+#endif
 		enc->pulse.frequency   = sstvenc_encoder_vis_data_freq(enc);
 		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_BIT;
 		enc->vars.vis.bit++;
 		return &(enc->pulse);
 	case SSTVENC_VIS_BIT_PARITY:
+#ifdef _DEBUG_SSTV
+		printf("%s: VIS header parity bit\n", __func__);
+#endif
 		enc->pulse.frequency   = sstvenc_encoder_vis_parity_freq(enc);
 		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_BIT;
 		enc->vars.vis.bit++;
 		return &(enc->pulse);
 	case SSTVENC_VIS_BIT_STOP:
+#ifdef _DEBUG_SSTV
+		printf("%s: VIS header stop bit\n", __func__);
+#endif
 		enc->pulse.frequency   = SSTVENC_FREQ_SYNC;
 		enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_VIS_BIT;
 		enc->vars.vis.bit++;
 		return &(enc->pulse);
 	default:
+#ifdef _DEBUG_SSTV
+		printf("%s: VIS header is finished\n", __func__);
+#endif
 		/* This is the end of the VIS header */
 		return NULL;
 	}
@@ -506,10 +560,16 @@ sstvenc_encoder_next_vis_pulse(struct sstvenc_encoder* const enc) {
 
 static void
 sstvenc_encoder_on_initseq_done(struct sstvenc_encoder* const enc) {
+#ifdef _DEBUG_SSTV
+	printf("%s: initial sequence done\n", __func__);
+#endif
 	sstvenc_encoder_begin_image(enc);
 }
 
 static void sstvenc_encoder_begin_image(struct sstvenc_encoder* const enc) {
+#ifdef _DEBUG_SSTV
+	printf("%s: begin image scan\n", __func__);
+#endif
 	enc->phase	 = SSTVENC_ENCODER_PHASE_SCAN;
 	enc->vars.scan.y = 0;
 	sstvenc_encoder_begin_scanline(enc);
@@ -517,17 +577,28 @@ static void sstvenc_encoder_begin_image(struct sstvenc_encoder* const enc) {
 
 static void
 sstvenc_encoder_begin_scanline(struct sstvenc_encoder* const enc) {
+#ifdef _DEBUG_SSTV
+	printf("%s: begin row %u\n", __func__, enc->vars.scan.y);
+#endif
 	sstvenc_encoder_begin_frontporch(enc);
 }
 
 static void sstvenc_encoder_begin_channel(struct sstvenc_encoder* const enc,
 					  uint8_t segment, uint8_t ch) {
+#ifdef _DEBUG_SSTV
+	printf("%s: begin row %u channel %u\n", __func__, enc->vars.scan.y,
+	       ch);
+#endif
 	sstvenc_encoder_next_scan_seg(enc, segment);
 	enc->vars.scan.x = 0;
 	enc->pulse.duration_ns
 	    = (uint32_t)((((double)enc->mode->scanline_period_ns[ch])
 			  / enc->mode->width)
 			 + 0.5);
+#ifdef _DEBUG_SSTV
+	printf("%s: %" PRIu32 " ns per pixel\n", __func__,
+	       enc->pulse.duration_ns);
+#endif
 }
 
 static const struct sstvenc_encoder_pulse*
@@ -604,24 +675,36 @@ sstvenc_encoder_next_channel_pulse(struct sstvenc_encoder* const enc,
 
 static void
 sstvenc_encoder_begin_frontporch(struct sstvenc_encoder* const enc) {
+#ifdef _DEBUG_SSTV
+	printf("%s: begin row %u front porch\n", __func__, enc->vars.scan.y);
+#endif
 	sstvenc_encoder_next_scan_seg(
 	    enc, SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH);
 	sstvenc_encoder_begin_seq(enc, enc->mode->frontporch, NULL);
 }
 
 static void sstvenc_encoder_begin_gap01(struct sstvenc_encoder* const enc) {
+#ifdef _DEBUG_SSTV
+	printf("%s: begin row %u gap 0/1\n", __func__, enc->vars.scan.y);
+#endif
 	sstvenc_encoder_next_scan_seg(enc,
 				      SSTVENC_ENCODER_SCAN_SEGMENT_GAP01);
 	sstvenc_encoder_begin_seq(enc, enc->mode->gap01, NULL);
 }
 
 static void sstvenc_encoder_begin_gap12(struct sstvenc_encoder* const enc) {
+#ifdef _DEBUG_SSTV
+	printf("%s: begin row %u gap 1/2\n", __func__, enc->vars.scan.y);
+#endif
 	sstvenc_encoder_next_scan_seg(enc,
 				      SSTVENC_ENCODER_SCAN_SEGMENT_GAP12);
 	sstvenc_encoder_begin_seq(enc, enc->mode->gap12, NULL);
 }
 
 static void sstvenc_encoder_begin_gap23(struct sstvenc_encoder* const enc) {
+#ifdef _DEBUG_SSTV
+	printf("%s: begin row %u gap 2/3\n", __func__, enc->vars.scan.y);
+#endif
 	sstvenc_encoder_next_scan_seg(enc,
 				      SSTVENC_ENCODER_SCAN_SEGMENT_GAP23);
 	sstvenc_encoder_begin_seq(enc, enc->mode->gap23, NULL);
@@ -629,6 +712,9 @@ static void sstvenc_encoder_begin_gap23(struct sstvenc_encoder* const enc) {
 
 static void
 sstvenc_encoder_begin_backporch(struct sstvenc_encoder* const enc) {
+#ifdef _DEBUG_SSTV
+	printf("%s: begin row %u back porch\n", __func__, enc->vars.scan.y);
+#endif
 	sstvenc_encoder_next_scan_seg(enc,
 				      SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH);
 	sstvenc_encoder_begin_seq(enc, enc->mode->backporch, NULL);
@@ -636,11 +722,17 @@ sstvenc_encoder_begin_backporch(struct sstvenc_encoder* const enc) {
 
 static void sstvenc_encoder_next_scan_seg(struct sstvenc_encoder* const enc,
 					  uint8_t next_segment) {
+#ifdef _DEBUG_SSTV
+	printf("%s: entering segment 0x%02x\n", __func__, next_segment);
+#endif
 	enc->vars.scan.segment = next_segment;
 }
 
 static void
 sstvenc_encoder_on_finalseq_done(struct sstvenc_encoder* const enc) {
+#ifdef _DEBUG_SSTV
+	printf("%s: end of final image sequence\n", __func__);
+#endif
 	sstvenc_encoder_begin_fsk(enc);
 }
 
@@ -651,6 +743,10 @@ restart:
 	switch (enc->vars.scan.segment) {
 	case SSTVENC_ENCODER_SCAN_SEGMENT_FRONTPORCH:
 		pulse = sstvenc_encoder_next_seq_pulse(enc);
+#ifdef _DEBUG_SSTV
+		printf("%s: front porch pulse = %p (*, %u)\n", __func__,
+		       (void*)pulse, enc->vars.scan.y);
+#endif
 		if (pulse) {
 			return pulse;
 		}
@@ -659,6 +755,10 @@ restart:
 		    enc, SSTVENC_ENCODER_SCAN_SEGMENT_CH0, 0);
 	case SSTVENC_ENCODER_SCAN_SEGMENT_CH0:
 		pulse = sstvenc_encoder_next_channel_pulse(enc, 0);
+#ifdef _DEBUG_SSTV
+		printf("%s: ch0 pulse = %p (%u, %u)\n", __func__,
+		       (void*)pulse, enc->vars.scan.x, enc->vars.scan.y);
+#endif
 		if (pulse) {
 			return pulse;
 		}
@@ -666,6 +766,10 @@ restart:
 		sstvenc_encoder_begin_gap01(enc);
 	case SSTVENC_ENCODER_SCAN_SEGMENT_GAP01:
 		pulse = sstvenc_encoder_next_seq_pulse(enc);
+#ifdef _DEBUG_SSTV
+		printf("%s: gap 0/1 pulse = %p (*, %u)\n", __func__,
+		       (void*)pulse, enc->vars.scan.y);
+#endif
 		if (pulse) {
 			return pulse;
 		}
@@ -674,6 +778,10 @@ restart:
 		    enc, SSTVENC_ENCODER_SCAN_SEGMENT_CH1, 1);
 	case SSTVENC_ENCODER_SCAN_SEGMENT_CH1:
 		pulse = sstvenc_encoder_next_channel_pulse(enc, 1);
+#ifdef _DEBUG_SSTV
+		printf("%s: ch1 pulse = %p (%u, %u)\n", __func__,
+		       (void*)pulse, enc->vars.scan.x, enc->vars.scan.y);
+#endif
 		if (pulse) {
 			return pulse;
 		}
@@ -681,6 +789,10 @@ restart:
 		sstvenc_encoder_begin_gap12(enc);
 	case SSTVENC_ENCODER_SCAN_SEGMENT_GAP12:
 		pulse = sstvenc_encoder_next_seq_pulse(enc);
+#ifdef _DEBUG_SSTV
+		printf("%s: gap 1/2 pulse = %p (*, %u)\n", __func__,
+		       (void*)pulse, enc->vars.scan.y);
+#endif
 		if (pulse) {
 			return pulse;
 		}
@@ -689,6 +801,10 @@ restart:
 		    enc, SSTVENC_ENCODER_SCAN_SEGMENT_CH2, 2);
 	case SSTVENC_ENCODER_SCAN_SEGMENT_CH2:
 		pulse = sstvenc_encoder_next_channel_pulse(enc, 2);
+#ifdef _DEBUG_SSTV
+		printf("%s: ch2 pulse = %p (%u, %u)\n", __func__,
+		       (void*)pulse, enc->vars.scan.x, enc->vars.scan.y);
+#endif
 		if (pulse) {
 			return pulse;
 		}
@@ -696,6 +812,10 @@ restart:
 		sstvenc_encoder_begin_gap23(enc);
 	case SSTVENC_ENCODER_SCAN_SEGMENT_GAP23:
 		pulse = sstvenc_encoder_next_seq_pulse(enc);
+#ifdef _DEBUG_SSTV
+		printf("%s: gap 2/3 pulse = %p (*, %u)\n", __func__,
+		       (void*)pulse, enc->vars.scan.y);
+#endif
 		if (pulse) {
 			return pulse;
 		}
@@ -706,18 +826,32 @@ restart:
 		    enc, SSTVENC_ENCODER_SCAN_SEGMENT_CH3, 3);
 	case SSTVENC_ENCODER_SCAN_SEGMENT_CH3:
 		pulse = sstvenc_encoder_next_channel_pulse(enc, 3);
+#ifdef _DEBUG_SSTV
+		printf("%s: ch3 pulse = %p (%u, %u)\n", __func__,
+		       (void*)pulse, enc->vars.scan.x, enc->vars.scan.y);
+#endif
 		if (pulse) {
 			return pulse;
 		}
 		/* Fall-thru */
 		sstvenc_encoder_begin_backporch(enc);
 	case SSTVENC_ENCODER_SCAN_SEGMENT_BACKPORCH:
+#ifdef _DEBUG_SSTV
+		printf("%s: back porch pulse = %p (*, %u)\n", __func__,
+		       (void*)pulse, enc->vars.scan.y);
+#endif
 		pulse = sstvenc_encoder_next_seq_pulse(enc);
+#ifdef _DEBUG_SSTV
+		printf("%s: back porch pulse = %p\n", __func__, (void*)pulse);
+#endif
 		if (pulse) {
 			return pulse;
 		}
 		/* Fall-thru */
 	default:
+#ifdef _DEBUG_SSTV
+		printf("%s: end of scan line\n", __func__);
+#endif
 		sstvenc_encoder_next_scan_seg(
 		    enc, SSTVENC_ENCODER_SCAN_SEGMENT_NEXT);
 		break;
@@ -727,19 +861,31 @@ restart:
 	enc->vars.scan.x = 0;
 	switch (enc->mode->colour_space_order & SSTVENC_CSO_MASK_MODE) {
 	case SSTVENC_CSO_MODE_YUV2:
+#ifdef _DEBUG_SSTV
+		printf("%s: YUV2 increment two rows\n", __func__);
+#endif
 		enc->vars.scan.y += 2;
 		break;
 	default:
+#ifdef _DEBUG_SSTV
+		printf("%s: increment single row\n", __func__);
+#endif
 		enc->vars.scan.y++;
 	}
 
 	if (enc->vars.scan.y < enc->mode->height) {
 		/* Go again */
+#ifdef _DEBUG_SSTV
+		printf("%s: repeat for row %u\n", __func__, enc->vars.scan.y);
+#endif
 		sstvenc_encoder_begin_scanline(enc);
 		goto restart;
 	}
 
 	/* That's it! */
+#ifdef _DEBUG_SSTV
+	printf("%s: end of image\n", __func__);
+#endif
 	return NULL;
 }
 
@@ -754,6 +900,9 @@ const static uint8_t sstvenc_encoder_fsk_tail[]	    = {0x01};
 static void sstvenc_encoder_fsk_load_next(struct sstvenc_encoder* const enc) {
 	switch (enc->vars.fsk.segment) {
 	case SSTVENC_ENCODER_FSK_SEGMENT_BEGIN:
+#ifdef _DEBUG_SSTV
+		printf("%s: load FSK preamble\n", __func__);
+#endif
 		enc->vars.fsk.segment = SSTVENC_ENCODER_FSK_SEGMENT_PREAMBLE;
 		enc->vars.fsk.byte    = 0;
 		enc->vars.fsk.seg_sz  = sizeof(sstvenc_encoder_fsk_preamble);
@@ -764,22 +913,38 @@ static void sstvenc_encoder_fsk_load_next(struct sstvenc_encoder* const enc) {
 			    = sstvenc_encoder_fsk_preamble[enc->vars.fsk
 							       .byte];
 			enc->vars.fsk.bit = 0;
+#ifdef _DEBUG_SSTV
+			printf("%s: preamble byte 0x%02x\n", __func__,
+			       enc->vars.fsk.bv);
+#endif
 			break;
 		} else {
 			enc->vars.fsk.segment
 			    = SSTVENC_ENCODER_FSK_SEGMENT_ID;
 			enc->vars.fsk.seg_sz = strlen(enc->fsk_id);
 			enc->vars.fsk.byte   = 0;
+#ifdef _DEBUG_SSTV
+			printf("%s: end of preamble, load FSK ID byte 0\n",
+			       __func__);
+#endif
 		}
 		/* Fall-thru */
 	case SSTVENC_ENCODER_FSK_SEGMENT_ID:
 		if (enc->vars.fsk.byte < enc->vars.fsk.seg_sz) {
+#ifdef _DEBUG_SSTV
+			printf("%s: FSK ID byte %u = 0x%02x\n", __func__,
+			       enc->vars.fsk.byte, enc->vars.fsk.bv);
+#endif
 			enc->vars.fsk.bv
 			    = (uint8_t)(enc->fsk_id[enc->vars.fsk.byte])
 			      - 0x20;
 			enc->vars.fsk.bit = 0;
 			break;
 		} else {
+#ifdef _DEBUG_SSTV
+			printf("%s: end of FSK ID, load FSK TAIL byte 0\n",
+			       __func__);
+#endif
 			enc->vars.fsk.segment
 			    = SSTVENC_ENCODER_FSK_SEGMENT_TAIL;
 			enc->vars.fsk.seg_sz
@@ -789,11 +954,18 @@ static void sstvenc_encoder_fsk_load_next(struct sstvenc_encoder* const enc) {
 		/* Fall-thru */
 	case SSTVENC_ENCODER_FSK_SEGMENT_TAIL:
 		if (enc->vars.fsk.byte < enc->vars.fsk.seg_sz) {
+#ifdef _DEBUG_SSTV
+			printf("%s: FSK TAIL byte %u = 0x%02x\n", __func__,
+			       enc->vars.fsk.byte, enc->vars.fsk.bv);
+#endif
 			enc->vars.fsk.bv
 			    = sstvenc_encoder_fsk_tail[enc->vars.fsk.byte];
 			enc->vars.fsk.bit = 0;
 			break;
 		} else {
+#ifdef _DEBUG_SSTV
+			printf("%s: end of FSK TAIL\n", __func__);
+#endif
 			enc->vars.fsk.segment
 			    = SSTVENC_ENCODER_FSK_SEGMENT_DONE;
 			enc->vars.fsk.byte = 0;
@@ -807,9 +979,15 @@ static void sstvenc_encoder_begin_fsk(struct sstvenc_encoder* const enc) {
 	enc->vars.fsk.bit     = 0;
 
 	if (enc->fsk_id) {
+#ifdef _DEBUG_SSTV
+		printf("%s: initialise FSK state\n", __func__);
+#endif
 		enc->vars.fsk.segment = SSTVENC_ENCODER_FSK_SEGMENT_BEGIN;
 		sstvenc_encoder_fsk_load_next(enc);
 	} else {
+#ifdef _DEBUG_SSTV
+		printf("%s: no FSK defined\n", __func__);
+#endif
 		enc->vars.fsk.segment = SSTVENC_ENCODER_FSK_SEGMENT_DONE;
 	}
 }
@@ -817,19 +995,31 @@ static void sstvenc_encoder_begin_fsk(struct sstvenc_encoder* const enc) {
 static const struct sstvenc_encoder_pulse*
 sstvenc_encoder_next_fsk_pulse(struct sstvenc_encoder* const enc) {
 	if (enc->vars.fsk.bit >= 6) {
+#ifdef _DEBUG_SSTV
+		printf("%s: end of FSK byte\n", __func__);
+#endif
 		enc->vars.fsk.byte++;
 		sstvenc_encoder_fsk_load_next(enc);
 	}
 
 	if (enc->vars.fsk.segment >= SSTVENC_ENCODER_FSK_SEGMENT_DONE) {
 		/* This is the end of the FSK ID */
+#ifdef _DEBUG_SSTV
+		printf("%s: end of FSK\n", __func__);
+#endif
 		return NULL;
 	}
 
 	/* Next bit */
 	if (enc->vars.fsk.bv & (1 << enc->vars.fsk.bit)) {
+#ifdef _DEBUG_SSTV
+		printf("%s: FSK bit value 1\n", __func__);
+#endif
 		enc->pulse.frequency = SSTVENC_FREQ_FSKID_BIT1;
 	} else {
+#ifdef _DEBUG_SSTV
+		printf("%s: FSK bit value 0\n", __func__);
+#endif
 		enc->pulse.frequency = SSTVENC_FREQ_FSKID_BIT0;
 	}
 	enc->pulse.duration_ns = 1000 * SSTVENC_PERIOD_FSKID_BIT;
@@ -843,9 +1033,15 @@ sstvenc_encoder_next_pulse(struct sstvenc_encoder* const enc) {
 	const struct sstvenc_encoder_pulse* pulse = NULL;
 	switch (enc->phase) {
 	case SSTVENC_ENCODER_PHASE_INIT:
+#ifdef _DEBUG_SSTV
+		printf("%s: initialise encoder\n", __func__);
+#endif
 		sstvenc_encoder_begin_vis(enc);
 		/* Fall-thru */
 	case SSTVENC_ENCODER_PHASE_VIS:
+#ifdef _DEBUG_SSTV
+		printf("%s: next VIS pulse\n", __func__);
+#endif
 		pulse = sstvenc_encoder_next_vis_pulse(enc);
 		if (pulse) {
 			break;
@@ -855,6 +1051,9 @@ sstvenc_encoder_next_pulse(struct sstvenc_encoder* const enc) {
 			    sstvenc_encoder_on_initseq_done);
 		}
 		/* Fall-thru */
+#ifdef _DEBUG_SSTV
+		printf("%s: end of VIS\n", __func__);
+#endif
 	case SSTVENC_ENCODER_PHASE_INITSEQ:
 		pulse = sstvenc_encoder_next_seq_pulse(enc);
 		if (pulse) {
@@ -863,6 +1062,9 @@ sstvenc_encoder_next_pulse(struct sstvenc_encoder* const enc) {
 			sstvenc_encoder_begin_image(enc);
 		}
 		/* Fall-thru */
+#ifdef _DEBUG_SSTV
+		printf("%s: end of init sequence\n", __func__);
+#endif
 		break;
 	case SSTVENC_ENCODER_PHASE_SCAN:
 		pulse = sstvenc_encoder_next_image_pulse(enc);
@@ -873,12 +1075,18 @@ sstvenc_encoder_next_pulse(struct sstvenc_encoder* const enc) {
 			    enc, enc->mode->finalseq,
 			    sstvenc_encoder_on_finalseq_done);
 		}
+#ifdef _DEBUG_SSTV
+		printf("%s: end of image scan\n", __func__);
+#endif
 		/* Fall-thru */
 	case SSTVENC_ENCODER_PHASE_FINALSEQ:
 		pulse = sstvenc_encoder_next_seq_pulse(enc);
 		if (pulse) {
 			break;
 		}
+#ifdef _DEBUG_SSTV
+		printf("%s: end of final sequence\n", __func__);
+#endif
 		/* Fall-thru */
 	case SSTVENC_ENCODER_PHASE_FSK:
 		pulse = sstvenc_encoder_next_fsk_pulse(enc);
@@ -886,6 +1094,9 @@ sstvenc_encoder_next_pulse(struct sstvenc_encoder* const enc) {
 			break;
 		}
 		/* Fall-thru */
+#ifdef _DEBUG_SSTV
+		printf("%s: end of FSK ID\n", __func__);
+#endif
 	default:
 		sstvenc_encoder_new_phase(enc, SSTVENC_ENCODER_PHASE_DONE);
 		break;
