@@ -3,12 +3,11 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <arpa/inet.h>
-#include <errno.h>
 #include <gd.h>
 #include <getopt.h>
 #include <libsstvenc/oscillator.h>
 #include <libsstvenc/sstv.h>
+#include <libsstvenc/sunau.h>
 #include <libsstvenc/timescale.h>
 #include <libsstvenc/yuv.h>
 #include <stdio.h>
@@ -75,74 +74,6 @@ static void show_usage(const char* prog_name) {
 	show_modes();
 }
 
-/*!
- * Write an audio sample to the given output file.  Interface signature.
- *
- * @param[in]	sample	Audio sample being written
- * @param[out]	output	Output audio file
- *
- * @retval	1	Success
- * @retval	0	Failure (see errno)
- */
-typedef size_t write_sample_fn(double sample, FILE* const output);
-
-size_t	       write_sample_s8(double sample, FILE* const output) {
-	/* Scale to 8-bit fixed-point */
-	int8_t isample = INT8_MAX * sample;
-	return fwrite(&isample, sizeof(isample), 1, output);
-}
-
-size_t write_sample_s16(double sample, FILE* const output) {
-	/* Scale to 16-bit fixed-point */
-	int8_t isample = INT16_MAX * sample;
-
-	/* Convert to big-endian and write */
-	isample	       = htons(isample);
-	return fwrite(&isample, sizeof(isample), 1, output);
-}
-
-size_t write_sample_s32(double sample, FILE* const output) {
-	/* Scale to 16-bit fixed-point */
-	int32_t isample = INT32_MAX * sample;
-
-	/* Convert to big-endian and write */
-	isample		= htonl(isample);
-	return fwrite(&isample, sizeof(isample), 1, output);
-}
-
-size_t write_sample_f32(double sample, FILE* const output) {
-	union {
-		float	 f;
-		uint32_t ui;
-	} fsample;
-
-	fsample.f  = sample;
-
-	/* Convert to big-endian and write */
-	fsample.ui = htonl(fsample.ui);
-	return fwrite(&fsample.ui, sizeof(fsample.ui), 1, output);
-}
-
-size_t write_sample_f64(double sample, FILE* const output) {
-	union {
-		double	 f;
-		uint64_t ui;
-	} fsample;
-	uint32_t out[2];
-
-	fsample.f = sample;
-
-	/* Sadly, there's no htonll */
-	out[0]	  = fsample.ui >> 32;
-	out[1]	  = fsample.ui & UINT32_MAX;
-
-	/* Convert to big-endian */
-	out[0]	  = htonl(out[0]);
-	out[1]	  = htonl(out[1]);
-
-	return fwrite(out, sizeof(out), 1, output);
-}
-
 int main(int argc, char* argv[]) {
 	const char*	     opt_fsk_id	   = NULL;
 	const char*	     opt_channels  = "1";
@@ -155,8 +86,7 @@ int main(int argc, char* argv[]) {
 	int		     opt_idx	   = 0;
 	uint8_t		     total_audio_channels;
 	uint8_t		     select_audio_channels;
-	uint32_t	     audio_encoding = 3;
-	write_sample_fn*     write_sample   = write_sample_s16;
+	uint32_t	     audio_encoding = SSTVENC_SUNAU_FMT_S16;
 
 	static struct option long_options[] = {
 	    {.name    = "bits",
@@ -199,13 +129,11 @@ int main(int argc, char* argv[]) {
 			switch (opt_bits) {
 			case 8:
 				/* 8-bit signed */
-				write_sample   = write_sample_s8;
-				audio_encoding = 2;
+				audio_encoding = SSTVENC_SUNAU_FMT_S8;
 				break;
 			case 16:
 				/* 16-bit signed */
-				write_sample   = write_sample_s16;
-				audio_encoding = 3;
+				audio_encoding = SSTVENC_SUNAU_FMT_S16;
 				break;
 			case 32:
 				switch (endptr[0]) {
@@ -213,21 +141,20 @@ int main(int argc, char* argv[]) {
 				case 'S':
 				case 's':
 					/* 32-bit signed */
-					write_sample   = write_sample_s32;
-					audio_encoding = 5;
+					audio_encoding
+					    = SSTVENC_SUNAU_FMT_S32;
 					break;
 				case 'f':
 				case 'F':
 					/* 32-bit float */
-					write_sample   = write_sample_f32;
-					audio_encoding = 6;
+					audio_encoding
+					    = SSTVENC_SUNAU_FMT_F32;
 					break;
 				}
 				break;
 			case 64:
 				/* 64-bit float */
-				write_sample   = write_sample_f64;
-				audio_encoding = 7;
+				audio_encoding = SSTVENC_SUNAU_FMT_F64;
 				break;
 			default:
 				fprintf(stderr,
@@ -298,6 +225,7 @@ int main(int argc, char* argv[]) {
 	const struct sstvenc_mode* mode = sstvenc_get_mode_by_name(opt_mode);
 	struct sstvenc_encoder	   enc;
 	struct sstvenc_oscillator  osc;
+	struct sstvenc_sunau_enc   au;
 
 	if (!mode) {
 		fprintf(stderr, "Unknown mode %s\n", opt_mode);
@@ -366,31 +294,15 @@ int main(int argc, char* argv[]) {
 
 	sstvenc_encoder_init(&enc, mode, opt_fsk_id, fb);
 	sstvenc_osc_init(&osc, 1.0, 0.0, 0.0, opt_rate);
-
-	FILE* out = fopen(opt_output_au, "wb");
-	if (!out) {
-		perror("Failed to open output file");
-		return (2);
+	{
+		int res = sstvenc_sunau_enc_init(
+		    &au, opt_output_au, osc.sample_rate, audio_encoding,
+		    total_audio_channels);
+		if (res < 0) {
+			fprintf(stderr, "Failed to open output file %s: %s\n",
+				opt_output_au, strerror(-res));
+		}
 	}
-
-	/*
-	 * Write out a Sun audio header.
-	 * https://en.wikipedia.org/wiki/Au_file_format
-	 */
-	uint32_t hdr[7] = {
-	    0x2e736e64,		  // Magic ".snd"
-	    28,			  // Data offset: 28 bytes (7*4-bytes)
-	    UINT32_MAX,		  // Data size: unknown
-	    audio_encoding,	  // Encoding: int16_t linear
-	    osc.sample_rate,	  // Sample rate
-	    total_audio_channels, // Channels
-	    0,			  // Annotation (unused)
-	};
-	for (int i = 0; i < 7; i++) {
-		// Byte swap to big-endian
-		hdr[i] = htonl(hdr[i]);
-	}
-	fwrite(hdr, sizeof(int32_t), 7, out);
 
 	/*
 	 * Begin writing and computing the audio data.
@@ -406,9 +318,9 @@ int main(int argc, char* argv[]) {
 		static uint32_t remaining     = 0;
 
 		/*
-		 * Our 16-bit fixed-point sample for the audio output.
+		 * Our audio samples for this audio frame
 		 */
-		int16_t		sample;
+		double		samples[total_audio_channels];
 
 		if (!remaining) {
 			/*
@@ -456,15 +368,18 @@ int main(int argc, char* argv[]) {
 		sstvenc_osc_compute(&osc);
 
 		for (uint8_t ch = 0; ch < total_audio_channels; ch++) {
-			size_t res;
 			if (select_audio_channels & (1 << ch)) {
-				res = write_sample(osc.output, out);
+				samples[ch] = osc.output;
 			} else {
-				res = write_sample(0.0, out);
+				samples[ch] = 0.0;
 			}
 
-			if (res != 1) {
-				perror("Failed to write audio sample");
+			int au_res = sstvenc_sunau_enc_write(
+			    &au, total_audio_channels, samples);
+			if (au_res < 0) {
+				fprintf(stderr,
+					"Failed to write audio samples: %s\n",
+					strerror(-au_res));
 				return (2);
 			}
 		}
@@ -472,7 +387,16 @@ int main(int argc, char* argv[]) {
 		/* Count this sample */
 		remaining--;
 	}
-	fclose(out);
+
+	{
+		int au_res = sstvenc_sunau_enc_close(&au);
+		if (au_res < 0) {
+			fprintf(stderr,
+				"Failed to close audio output file: %s\n",
+				strerror(-au_res));
+			return (2);
+		}
+	}
 
 	return 0;
 }
