@@ -519,13 +519,34 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
 	    SSTVENC_CSO_CH_V, SSTVENC_CSO_CH_Y2),
 	.vis_code = 0x5e,
     },
-    /* Wraase SC-2 modes */
+    /*
+     * Wraase SC-2 modes
+     *
+     * Separator is needed for W260 and W2120, but not W2180 in QSSTV and slowrx.
+     * W2180 has a half-length pulse in the front porch sequence.
+     */
+    {
+	.description	    = "Wraase SC-2 60",
+	.name		    = "W260",
+	.initseq	    = NULL,
+	.frontporch	    = sstvenc_sstv_wraasesc2_120_fp,
+	.gap01		    = sstvenc_sstv_wraasesc2_sep,
+	.gap12		    = sstvenc_sstv_wraasesc2_sep,
+	.backporch	    = NULL,
+	.finalseq	    = NULL,
+	.scanline_period_ns = {77627500, 77627500, 77627500},
+	.width		    = 320,
+	.height		    = 256,
+	.colour_space_order = SSTVENC_MODE_ORDER(
+	    SSTVENC_CSO_MODE_RGB, SSTVENC_CSO_CH_R, SSTVENC_CSO_CH_G,
+	    SSTVENC_CSO_CH_B, SSTVENC_CSO_CH_NONE),
+	.vis_code = 0xbb,
+    },
     {
 	.description	    = "Wraase SC-2 120",
 	.name		    = "W2120",
 	.initseq	    = NULL,
 	.frontporch	    = sstvenc_sstv_wraasesc2_120_fp,
-	/* Separator is needed for W2120, but not W2180 in QSSTV and slowrx */
 	.gap01		    = sstvenc_sstv_wraasesc2_sep,
 	.gap12		    = sstvenc_sstv_wraasesc2_sep,
 	.backporch	    = NULL,
