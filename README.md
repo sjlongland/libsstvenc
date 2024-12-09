@@ -19,7 +19,7 @@ implementation in C for use in custom SSTV applications.
 - Martin M1 and M2
 - Pasokon P3, P5 and P7
 - PD-50, PD-90, PD-120, PD-160, PD-180, PD-240 and PD-290
-- Wraase SC-2 120 and 180
+- Wraase SC-2 60, 120 and 180
 
 ### Future possible modes
 
