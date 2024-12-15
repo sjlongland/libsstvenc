@@ -105,6 +105,19 @@ void sstvenc_yuv_to_rgb(uint8_t* dest, const uint8_t* src, uint16_t width,
 	}
 }
 
+void sstvenc_yuv_to_mono(uint8_t* dest, const uint8_t* src, uint16_t width,
+			 uint16_t height) {
+	size_t sz = (size_t)width * (size_t)height;
+	while (sz) {
+		/* Extract Y out of YUV */
+		dest[0]	 = src[0];
+
+		dest	+= 1;
+		src	+= 3;
+		sz--;
+	}
+}
+
 void sstvenc_mono_to_rgb(uint8_t* dest, const uint8_t* src, uint16_t width,
 			 uint16_t height) {
 	size_t sz = (size_t)width * (size_t)height;

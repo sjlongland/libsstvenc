@@ -129,6 +129,20 @@ void	sstvenc_yuv_to_rgb(uint8_t* dest, const uint8_t* src, uint16_t width,
 			   uint16_t height);
 
 /*!
+ * Convert the given YUV framebuffer to monochrome (Y component only).
+ *
+ * @param[out]	dest	Destination framebuffer, which is assumed to be at
+ * 			least one third of the size of @a src.  This can be
+ * the same location as @a src -- after conversion the occupied size will be
+ * one third of the original buffer and may be `realloc()`'d to that size.
+ * @param[in]	src	Source framebuffer, which is assumed to be YUV
+ * @param[in]	width	Width of the framebuffer in pixels
+ * @param[in]	height	Height of the framebuffer in pixels
+ */
+void	sstvenc_yuv_to_mono(uint8_t* dest, const uint8_t* src, uint16_t width,
+			    uint16_t height);
+
+/*!
  * Convert the given mono framebuffer to RGB.
  *
  * @param[out]	dest	Destination framebuffer, which is assumed to be triple
