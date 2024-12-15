@@ -522,8 +522,8 @@ const static struct sstvenc_mode sstvenc_sstv_modes[] = {
     /*
      * Wraase SC-2 modes
      *
-     * Separator is needed for W260 and W2120, but not W2180 in QSSTV and slowrx.
-     * W2180 has a half-length pulse in the front porch sequence.
+     * Separator is needed for W260 and W2120, but not W2180 in QSSTV and
+     * slowrx. W2180 has a half-length pulse in the front porch sequence.
      */
     {
 	.description	    = "Wraase SC-2 60",
