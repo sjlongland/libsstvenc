@@ -22,12 +22,6 @@
 #include <stdio.h>
 
 /*!
- * Magic bytes at start of the Sun Audio header.  This is in fact, the ASCII
- * characters ".snd".
- */
-#define SSTVENC_SUNAU_MAGIC   (0x2e736e64u)
-
-/*!
  * @addtogroup sunau_formats Audio encoding formats
  * @{
  *
@@ -73,26 +67,8 @@ struct sstvenc_sunau_enc {
  * @retval	0		Settings are valid
  * @retval	-EINVAL		Invalid sample rate, encoding or channel count
  */
-static inline int sstvenc_sunau_enc_check(uint32_t sample_rate,
-					  uint8_t  encoding,
-					  uint8_t  channels) {
-	if (!channels)
-		return -EINVAL;
-	if (!sample_rate)
-		return -EINVAL;
-	switch (encoding) {
-	case SSTVENC_SUNAU_FMT_S8:
-	case SSTVENC_SUNAU_FMT_S16:
-	case SSTVENC_SUNAU_FMT_S32:
-	case SSTVENC_SUNAU_FMT_F32:
-	case SSTVENC_SUNAU_FMT_F64:
-		break;
-	default:
-		return -EINVAL;
-	}
-
-	return 0;
-}
+int sstvenc_sunau_enc_check(uint32_t sample_rate,
+					  uint8_t encoding, uint8_t channels);
 
 /*!
  * Initialise an audio context with an opened file.
@@ -109,24 +85,10 @@ static inline int sstvenc_sunau_enc_check(uint32_t sample_rate,
  * @retval		-EINVAL		Invalid sample rate, encoding or
  * channel count
  */
-static inline int
+int
 sstvenc_sunau_enc_init_fh(struct sstvenc_sunau_enc* const enc, FILE* fh,
 			  uint32_t sample_rate, uint8_t encoding,
-			  uint8_t channels) {
-	int res = sstvenc_sunau_enc_check(sample_rate, encoding, channels);
-	if (res < 0) {
-		return res;
-	}
-
-	enc->fh		 = fh;
-	enc->written_sz	 = 0;
-	enc->state	 = 0;
-	enc->sample_rate = sample_rate;
-	enc->encoding	 = encoding;
-	enc->channels	 = channels;
-
-	return 0;
-}
+			  uint8_t channels);
 
 /*!
  * Open a file for writing.
@@ -141,28 +103,10 @@ sstvenc_sunau_enc_init_fh(struct sstvenc_sunau_enc* const enc, FILE* fh,
  * @retval	-EINVAL		Invalid sample rate, encoding or channel count
  * @retval	<0		`-errno` result from `fopen()` call.
  */
-static inline int sstvenc_sunau_enc_init(struct sstvenc_sunau_enc* const enc,
+int sstvenc_sunau_enc_init(struct sstvenc_sunau_enc* const enc,
 					 const char*			 path,
 					 uint32_t sample_rate,
-					 uint8_t encoding, uint8_t channels) {
-	int res = sstvenc_sunau_enc_check(sample_rate, encoding, channels);
-	if (res < 0) {
-		return res;
-	}
-
-	enc->fh = fopen(path, "wb");
-	if (enc->fh == NULL) {
-		return -errno;
-	}
-
-	enc->written_sz	 = 0;
-	enc->state	 = 0;
-	enc->sample_rate = sample_rate;
-	enc->encoding	 = encoding;
-	enc->channels	 = channels;
-
-	return 0;
-}
+					 uint8_t encoding, uint8_t channels);
 
 /*!
  * Write some audio samples to the file.  Audio is assumed to be a whole
@@ -178,8 +122,8 @@ static inline int sstvenc_sunau_enc_init(struct sstvenc_sunau_enc* const enc,
  * multiple of `enc->channels`)
  * @retval		<0		Write error `errno` from `fwrite()`
  */
-int sstvenc_sunau_enc_write(struct sstvenc_sunau_enc* const enc,
-			    size_t n_samples, const double* samples);
+int		  sstvenc_sunau_enc_write(struct sstvenc_sunau_enc* const enc,
+					  size_t n_samples, const double* samples);
 
 /*!
  * Finish writing the file and close it.
