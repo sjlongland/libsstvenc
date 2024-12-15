@@ -162,22 +162,10 @@ struct sstvenc_cw_mod {
  * @param[in]		time_unit	The time unit used for measuring
  * 					@a dit_period and @a slope_period.
  */
-static inline void sstvenc_cw_init(struct sstvenc_cw_mod* const cw,
-				   const char* text, double amplitude,
-				   double frequency, double dit_period,
-				   double slope_period, uint32_t sample_rate,
-				   uint8_t time_unit) {
-
-	sstvenc_ps_init(&(cw->ps), amplitude, slope_period, INFINITY,
-			slope_period, sample_rate, time_unit);
-	sstvenc_osc_init(&(cw->osc), 1.0, frequency, 0.0, sample_rate);
-	cw->dit_period
-	    = sstvenc_ts_unit_to_samples(dit_period, sample_rate, time_unit);
-	cw->pos		= 0;
-	cw->symbol	= NULL;
-	cw->text_string = text;
-	cw->state	= SSTVENC_CW_MOD_STATE_INIT;
-}
+void sstvenc_cw_init(struct sstvenc_cw_mod* const cw, const char* text,
+		     double amplitude, double frequency, double dit_period,
+		     double slope_period, uint32_t sample_rate,
+		     uint8_t time_unit);
 
 /*!
  * Compute the next sample in the state machine.  The state machine will be

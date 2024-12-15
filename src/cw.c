@@ -309,6 +309,22 @@ static void sstvenc_cw_handle_state_dahspace(struct sstvenc_cw_mod* const cw);
  */
 static void sstvenc_cw_handle_state_done(struct sstvenc_cw_mod* const cw);
 
+void	    sstvenc_cw_init(struct sstvenc_cw_mod* const cw, const char* text,
+			    double amplitude, double frequency, double dit_period,
+			    double slope_period, uint32_t sample_rate,
+			    uint8_t time_unit) {
+
+	       sstvenc_ps_init(&(cw->ps), amplitude, slope_period, INFINITY,
+			       slope_period, sample_rate, time_unit);
+	       sstvenc_osc_init(&(cw->osc), 1.0, frequency, 0.0, sample_rate);
+	       cw->dit_period
+		   = sstvenc_ts_unit_to_samples(dit_period, sample_rate, time_unit);
+	       cw->pos	       = 0;
+	       cw->symbol      = NULL;
+	       cw->text_string = text;
+	       cw->state       = SSTVENC_CW_MOD_STATE_INIT;
+}
+
 static const struct sstvenc_cw_pair*
 sstvenc_cw_symbol_match(const char*		      sym,
 			const struct sstvenc_cw_pair* candidate) {
