@@ -9,6 +9,7 @@
  */
 
 #include <libsstvenc/yuv.h>
+#include <stddef.h>
 
 uint8_t sstvenc_yuv_calc_y(uint8_t r, uint8_t g, uint8_t b) {
 	return (16.0
@@ -36,23 +37,23 @@ uint8_t sstvenc_yuv_calc_v(uint8_t r, uint8_t g, uint8_t b) {
 
 uint8_t sstvenc_rgb_calc_r(uint8_t y, uint8_t u, uint8_t v) {
 	return (0.003906
-		* ((298.082 * ((double)y – 16.0))
-		   + (408.583 * ((double)u – 128.0))))
+		* ((298.082 * ((double)y - 16.0))
+		   + (408.583 * ((double)u - 128.0))))
 	       + 0.5;
 }
 
 uint8_t sstvenc_rgb_calc_g(uint8_t y, uint8_t u, uint8_t v) {
 	return (0.003906
-		* ((298.082 * ((double)y – 16.0))
-		   + (-100.291 * ((double)v – 128.0))
-		   + (-208.12 * ((double)u – 128.0))))
+		* ((298.082 * ((double)y - 16.0))
+		   + (-100.291 * ((double)v - 128.0))
+		   + (-208.12 * ((double)u - 128.0))))
 	       + 0.5;
 }
 
 uint8_t sstvenc_rgb_calc_b(uint8_t y, uint8_t u, uint8_t v) {
 	return (0.003906
-		* ((298.082 * ((double)y – 16.0))
-		   + (516.411 * ((double)v – 128.0))))
+		* ((298.082 * ((double)y - 16.0))
+		   + (516.411 * ((double)v - 128.0))))
 	       + 0.5;
 }
 
@@ -95,9 +96,9 @@ void sstvenc_yuv_to_rgb(uint8_t* dest, const uint8_t* src, uint16_t width,
 		const uint8_t y = src[0], u = src[1], v = src[2];
 
 		/* Convert and write out RGB */
-		dest[0]	 = sstvenc_rgb_calc_r(r, g, b); /* R */
-		dest[1]	 = sstvenc_rgb_calc_g(r, g, b); /* G */
-		dest[2]	 = sstvenc_rgb_calc_b(r, g, b); /* B */
+		dest[0]	 = sstvenc_rgb_calc_r(y, u, v); /* R */
+		dest[1]	 = sstvenc_rgb_calc_g(y, u, v); /* G */
+		dest[2]	 = sstvenc_rgb_calc_b(y, u, v); /* B */
 
 		dest	+= 3;
 		src	+= 3;
