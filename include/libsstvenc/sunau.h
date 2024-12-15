@@ -67,8 +67,8 @@ struct sstvenc_sunau_enc {
  * @retval	0		Settings are valid
  * @retval	-EINVAL		Invalid sample rate, encoding or channel count
  */
-int sstvenc_sunau_enc_check(uint32_t sample_rate,
-					  uint8_t encoding, uint8_t channels);
+int sstvenc_sunau_enc_check(uint32_t sample_rate, uint8_t encoding,
+			    uint8_t channels);
 
 /*!
  * Initialise an audio context with an opened file.
@@ -85,10 +85,9 @@ int sstvenc_sunau_enc_check(uint32_t sample_rate,
  * @retval		-EINVAL		Invalid sample rate, encoding or
  * channel count
  */
-int
-sstvenc_sunau_enc_init_fh(struct sstvenc_sunau_enc* const enc, FILE* fh,
-			  uint32_t sample_rate, uint8_t encoding,
-			  uint8_t channels);
+int sstvenc_sunau_enc_init_fh(struct sstvenc_sunau_enc* const enc, FILE* fh,
+			      uint32_t sample_rate, uint8_t encoding,
+			      uint8_t channels);
 
 /*!
  * Open a file for writing.
@@ -104,9 +103,8 @@ sstvenc_sunau_enc_init_fh(struct sstvenc_sunau_enc* const enc, FILE* fh,
  * @retval	<0		`-errno` result from `fopen()` call.
  */
 int sstvenc_sunau_enc_init(struct sstvenc_sunau_enc* const enc,
-					 const char*			 path,
-					 uint32_t sample_rate,
-					 uint8_t encoding, uint8_t channels);
+			   const char* path, uint32_t sample_rate,
+			   uint8_t encoding, uint8_t channels);
 
 /*!
  * Write some audio samples to the file.  Audio is assumed to be a whole
@@ -122,8 +120,8 @@ int sstvenc_sunau_enc_init(struct sstvenc_sunau_enc* const enc,
  * multiple of `enc->channels`)
  * @retval		<0		Write error `errno` from `fwrite()`
  */
-int		  sstvenc_sunau_enc_write(struct sstvenc_sunau_enc* const enc,
-					  size_t n_samples, const double* samples);
+int sstvenc_sunau_enc_write(struct sstvenc_sunau_enc* const enc,
+			    size_t n_samples, const double* samples);
 
 /*!
  * Finish writing the file and close it.
