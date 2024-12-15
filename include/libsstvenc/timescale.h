@@ -18,7 +18,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <assert.h>
+#include <math.h>
 #include <stdint.h>
 
 /*!
@@ -48,21 +48,7 @@
  *
  * @returns	The number of specified time units in one second.
  */
-static inline uint64_t sstvenc_ts_unit_scale(uint8_t unit) {
-	switch (unit) {
-	case SSTVENC_TS_UNIT_SECONDS:
-		return 1;
-	case SSTVENC_TS_UNIT_MILLISECONDS:
-		return 1000;
-	case SSTVENC_TS_UNIT_MICROSECONDS:
-		return 1000000;
-	case SSTVENC_TS_UNIT_NANOSECONDS:
-		return 1000000000;
-	default:
-		/* Not supported */
-		assert(0);
-	}
-}
+uint64_t sstvenc_ts_unit_scale(uint8_t unit);
 
 /*!
  * Clamp the given number of samples to a safe maximum.  If the value
@@ -73,13 +59,7 @@ static inline uint64_t sstvenc_ts_unit_scale(uint8_t unit) {
  *
  * @returns	Clamped number of samples.
  */
-static inline uint32_t sstvenc_ts_clamp_samples(uint64_t samples) {
-	if (samples > UINT32_MAX) {
-		return SSTVENC_TS_INFINITE;
-	} else {
-		return samples;
-	}
-}
+uint32_t sstvenc_ts_clamp_samples(uint64_t samples);
 
 /*!
  * Convert the given time period to the number of units.
@@ -94,16 +74,8 @@ static inline uint32_t sstvenc_ts_clamp_samples(uint64_t samples) {
  *
  * @retval	SSTVENC_TS_INFINITE	Time period is too long to represent.
  */
-static inline uint32_t
-sstvenc_ts_unit_to_samples(double time, uint32_t sample_rate, uint8_t unit) {
-	if (time == INFINITY) {
-		return SSTVENC_TS_INFINITE;
-	} else {
-		return sstvenc_ts_clamp_samples(
-		    ((uint64_t)((time * sample_rate) + 0.5))
-		    / sstvenc_ts_unit_scale(unit));
-	}
-}
+uint32_t sstvenc_ts_unit_to_samples(double time, uint32_t sample_rate,
+				    uint8_t unit);
 
 /*!
  * Convert the given number of samples to a time period in the specified unit.
@@ -119,16 +91,8 @@ sstvenc_ts_unit_to_samples(double time, uint32_t sample_rate, uint8_t unit) {
  *
  * @retval	INFINITY	Infinite number of samples is represented.
  */
-static inline double sstvenc_ts_samples_to_unit(uint32_t samples,
-						uint32_t sample_rate,
-						uint8_t	 unit) {
-	if (samples == SSTVENC_TS_INFINITE) {
-		return INFINITY;
-	} else {
-		uint64_t n = samples * sstvenc_ts_unit_scale(unit);
-		return ((double)n) / ((double)sample_rate);
-	}
-}
+double	 sstvenc_ts_samples_to_unit(uint32_t samples, uint32_t sample_rate,
+				    uint8_t unit);
 
 /*! @} */
 
