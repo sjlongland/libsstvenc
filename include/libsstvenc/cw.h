@@ -153,6 +153,7 @@ struct sstvenc_cw_mod {
  * @param[in]		text		Text to transmit in CW (morse code)
  * @param[in]		amplitude	Peak amplitude of the carrier on the
  * 					scale 0.0-1.0.
+ * @param[in]		frequency	Oscillator frequency in Hz.
  * @param[in]		dit_period	The length of a morse code 'dit'.
  * @param[in]		slope_period	The duration used for rising and
  * 					falling pulse edges for bandwidth
