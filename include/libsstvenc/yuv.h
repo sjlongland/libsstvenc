@@ -125,7 +125,7 @@ void	sstvenc_rgb_to_yuv(uint8_t* dest, const uint8_t* src, uint16_t width,
  * @param[in]	width	Width of the framebuffer in pixels
  * @param[in]	height	Height of the framebuffer in pixels
  */
-void	sstvenc_rgb_to_yuv(uint8_t* dest, const uint8_t* src, uint16_t width,
+void	sstvenc_yuv_to_rgb(uint8_t* dest, const uint8_t* src, uint16_t width,
 			   uint16_t height);
 
 /*!
