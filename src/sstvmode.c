@@ -599,4 +599,123 @@ const struct sstvenc_mode* sstvenc_get_mode_by_name(const char* name) {
 	return NULL;
 }
 
+uint64_t
+sstvenc_pulseseq_get_txtime(const struct sstvenc_encoder_pulse* seq) {
+	uint64_t txtime = 0;
+
+	while ((seq != NULL) && (seq->duration_ns > 0)) {
+		txtime += seq->duration_ns;
+		seq++;
+	}
+
+	return txtime;
+}
+
+uint64_t sstvenc_mode_get_txtime(const struct sstvenc_mode* const mode,
+				 const char*			  fsk_id) {
+	uint64_t txtime	 = 0;
+
+	/* Compute each scan line */
+	txtime		+= sstvenc_pulseseq_get_txtime(mode->frontporch);
+
+	for (uint8_t ch = 0; ch < 4; ch++) {
+		if (SSTVENC_MODE_GET_CH(ch, mode->colour_space_order)
+		    != SSTVENC_CSO_CH_NONE) {
+			/* There's a scan line here */
+			txtime += mode->scanline_period_ns[ch];
+
+			switch (ch) {
+			case 0:
+				txtime += sstvenc_pulseseq_get_txtime(
+				    mode->gap01);
+				break;
+			case 1:
+				txtime += sstvenc_pulseseq_get_txtime(
+				    mode->gap12);
+				break;
+			case 2:
+				txtime += sstvenc_pulseseq_get_txtime(
+				    mode->gap23);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	txtime += sstvenc_pulseseq_get_txtime(mode->backporch);
+
+	/* This is repeated for each scan line */
+	switch (mode->colour_space_order & SSTVENC_CSO_MASK_MODE) {
+	case SSTVENC_CSO_MODE_YUV2:
+		/* Each scan line is two image lines */
+		txtime *= mode->height / 2;
+		break;
+	default:
+		/* Each scan line is an image line */
+		txtime *= mode->height;
+		break;
+	}
+
+	/*
+	 * VIS header:
+	 */
+	txtime += 1000
+		  * (SSTVENC_PERIOD_VIS_START	    /* START bit 1 */
+		     + SSTVENC_PERIOD_VIS_SYNC	    /* START bit 2 */
+		     + SSTVENC_PERIOD_VIS_START	    /* START bit 3 */
+		     + SSTVENC_PERIOD_VIS_BIT	    /* START bit 4 */
+		     + (7 * SSTVENC_PERIOD_VIS_BIT) /* data bits */
+		     + SSTVENC_PERIOD_VIS_BIT	    /* PARITY bit */
+		     + SSTVENC_PERIOD_VIS_BIT	    /* STOP bit */
+		  );
+
+	/* Before and after, we have sequences of pulses */
+	txtime += sstvenc_pulseseq_get_txtime(mode->initseq);
+	txtime += sstvenc_pulseseq_get_txtime(mode->finalseq);
+
+	if (fsk_id) {
+		/* Add the duration of the FSK ID */
+		txtime += 1000
+			  * ((SSTVENC_PERIOD_FSKID_BIT
+			      * 12) /* 12 bits preamble */
+			     + (SSTVENC_PERIOD_FSKID_BIT * strlen(fsk_id)
+				* 6) /* 6 bits/char ID */
+			     + (SSTVENC_PERIOD_FSKID_BIT
+				* 6) /* 6 bits trailer */
+			  );
+	}
+
+	return txtime;
+}
+
+size_t sstvenc_mode_get_fb_sz(const struct sstvenc_mode* const mode) {
+	size_t sz = mode->width * mode->height * sizeof(uint8_t);
+
+	if ((mode->colour_space_order & SSTVENC_CSO_MASK_MODE)
+	    != SSTVENC_CSO_MODE_MONO) {
+		/* 3 channels needed */
+		sz *= 3;
+	}
+
+	return sz;
+}
+
+uint32_t sstvenc_get_pixel_posn(const struct sstvenc_mode* const mode,
+				uint16_t x, uint16_t y) {
+	assert(x < mode->width);
+	assert(y < mode->height);
+
+	uint32_t idx  = y * mode->width;
+	idx	     += x;
+
+	if ((mode->colour_space_order & SSTVENC_CSO_MASK_MODE)
+	    != SSTVENC_CSO_MODE_MONO) {
+		/* These are 3-colour tuples */
+		idx *= 3;
+	}
+
+	return idx;
+}
+
 /*! @} */
