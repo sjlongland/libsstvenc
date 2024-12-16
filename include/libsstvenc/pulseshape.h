@@ -16,6 +16,7 @@
 
 #include <libsstvenc/timescale.h>
 #include <math.h>
+#include <stddef.h>
 #include <stdint.h>
 
 /* Forward declaration */
