@@ -615,11 +615,12 @@ void sstvenc_sequencer_step_end(struct sstvenc_sequencer_step* const step);
  * @param[in]		event_cb	Optional event callback, set to NULL
  * 					for no callback.
  * @param[in]		event_cb_ctx	Optional event callback context.
+ * @param[in]		sample_rate	Sample rate in hertz.
  */
 void sstvenc_sequencer_init(struct sstvenc_sequencer* const	 seq,
 			    const struct sstvenc_sequencer_step* steps,
 			    sstvenc_sequencer_event_cb*		 event_cb,
-			    const void* event_cb_ctx);
+			    const void* event_cb_ctx, uint32_t sample_rate);
 
 /*!
  * Advance the state of the state machine when generating infinite tones or

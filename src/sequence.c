@@ -124,12 +124,13 @@ void sstvenc_sequencer_step_end(struct sstvenc_sequencer_step* const step) {
 void sstvenc_sequencer_init(struct sstvenc_sequencer* const	 seq,
 			    const struct sstvenc_sequencer_step* steps,
 			    sstvenc_sequencer_event_cb*		 event_cb,
-			    const void* event_cb_ctx) {
+			    const void* event_cb_ctx, uint32_t sample_rate) {
 	seq->step			      = 0;
 	seq->state			      = SSTVENC_SEQ_STATE_INIT;
 	seq->steps			      = steps;
 	seq->event_cb			      = event_cb;
 	seq->event_cb_ctx		      = event_cb_ctx;
+	seq->sample_rate		      = sample_rate;
 
 	seq->regs[SSTVENC_SEQ_REG_AMPLITUDE]  = 1.0;
 	seq->regs[SSTVENC_SEQ_REG_FREQUENCY]  = 800.0;
