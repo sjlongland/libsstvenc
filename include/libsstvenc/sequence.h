@@ -57,14 +57,14 @@
  * point.  We exit this state when the state counter reaches zero, at which
  * point we enter state @ref SSTVENC_SEQ_STATE_END_SILENCE.
  */
-#define SSTVENC_SEQ_STATE_GEN_SILENCE	    (0x11)
+#define SSTVENC_SEQ_STATE_GEN_SILENCE	    (0x17)
 
 /*!
  * Sequencer is emitting silence for an indefinite time period.  Zero samples
  * are being transmitted at this point.  We exit this state when an external
  * signal triggers us to move to state @ref SSTVENC_SEQ_STATE_END_SILENCE.
  */
-#define SSTVENC_SEQ_STATE_GEN_INF_SILENCE   (0x1e)
+#define SSTVENC_SEQ_STATE_GEN_INF_SILENCE   (0x18)
 
 /*!
  * Sequencer has finished emitting silence, the counter is now zero.  Possible
@@ -92,7 +92,7 @@
  * when the pulse shaper state machine reaches the "DONE" state, at which
  * point we enter state @ref SSTVENC_SEQ_STATE_END_TONE.
  */
-#define SSTVENC_SEQ_STATE_GEN_TONE	    (0x21)
+#define SSTVENC_SEQ_STATE_GEN_TONE	    (0x27)
 
 /*!
  * Sequencer is emitting a tone for an indefinite period of time.  Samples
@@ -101,7 +101,7 @@
  * reaches the "DONE" state, at which point we enter state @ref
  * SSTVENC_SEQ_STATE_END_TONE.
  */
-#define SSTVENC_SEQ_STATE_GEN_INF_TONE	    (0x2e)
+#define SSTVENC_SEQ_STATE_GEN_INF_TONE	    (0x28)
 
 /*!
  * Sequencer has finished emitting the tone.  Possible follow-on states:
@@ -126,7 +126,7 @@
  * machine reaches the "DONE" state, at which point we transition to the
  * @ref SSTVENC_SEQ_STATE_END_CW state.
  */
-#define SSTVENC_SEQ_STATE_GEN_CW	    (0x31)
+#define SSTVENC_SEQ_STATE_GEN_CW	    (0x37)
 
 /*!
  * Sequencer has finished sending CW.  Possible follow-on states:
@@ -151,7 +151,7 @@
  * SSTV modulator has completed its transmission, at which point we transition
  * to the @ref SSTVENC_SEQ_STATE_END_IMAGE state.
  */
-#define SSTVENC_SEQ_STATE_GEN_IMAGE	    (0x41)
+#define SSTVENC_SEQ_STATE_GEN_IMAGE	    (0x47)
 
 /*!
  * SSTV transmission has completed.  Follow-on states:
