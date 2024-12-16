@@ -5,10 +5,8 @@
 
 #include <gd.h>
 #include <getopt.h>
-#include <libsstvenc/oscillator.h>
-#include <libsstvenc/sstv.h>
+#include <libsstvenc/sstvmod.h>
 #include <libsstvenc/sunau.h>
-#include <libsstvenc/timescale.h>
 #include <libsstvenc/yuv.h>
 #include <stdio.h>
 #include <string.h>
@@ -223,8 +221,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	const struct sstvenc_mode* mode = sstvenc_get_mode_by_name(opt_mode);
-	struct sstvenc_encoder	   enc;
-	struct sstvenc_oscillator  osc;
+	struct sstvenc_mod	   mod;
 	struct sstvenc_sunau_enc   au;
 
 	if (!mode) {
@@ -292,11 +289,11 @@ int main(int argc, char* argv[]) {
 	gdImageDestroy(im_resized);
 	gdImageDestroy(im);
 
-	sstvenc_encoder_init(&enc, mode, opt_fsk_id, fb);
-	sstvenc_osc_init(&osc, 1.0, 0.0, 0.0, opt_rate);
+	sstvenc_modulator_init(&mod, mode, opt_fsk_id, fb, 10.0, 10.0,
+			       opt_rate, SSTVENC_TS_UNIT_MILLISECONDS);
 	{
 		int res = sstvenc_sunau_enc_init(
-		    &au, opt_output_au, osc.sample_rate, audio_encoding,
+		    &au, opt_output_au, mod.osc.sample_rate, audio_encoding,
 		    total_audio_channels);
 		if (res < 0) {
 			fprintf(stderr, "Failed to open output file %s: %s\n",
@@ -307,70 +304,18 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Begin writing and computing the audio data.
 	 */
-	while (enc.phase != SSTVENC_ENCODER_PHASE_DONE) {
-		/*
-		 * As we do this, we may encounter slippage due to rounding of
-		 * durations (in nanoseconds) to samples.  We account for this
-		 * by tallying up both separately, and comparing them.
-		 */
-		static uint64_t total_samples = 0;
-		static uint64_t total_ns      = 0;
-		static uint32_t remaining     = 0;
-
+	while (mod.enc.phase != SSTVENC_ENCODER_PHASE_DONE) {
 		/*
 		 * Our audio samples for this audio frame
 		 */
-		double		samples[total_audio_channels];
+		double samples[total_audio_channels];
 
-		if (!remaining) {
-			/*
-			 * No samples remaining, compute the next pulse.  This
-			 * function returns NULL when it has nothing more for
-			 * us.
-			 */
-			const struct sstvenc_encoder_pulse* pulse
-			    = sstvenc_encoder_next_pulse(&enc);
-
-			if (pulse) {
-				/* Update the oscillator frequency */
-				sstvenc_osc_set_frequency(&osc,
-							  pulse->frequency);
-
-				/* Figure out time duration in samples */
-				remaining = sstvenc_ts_unit_to_samples(
-				    pulse->duration_ns, osc.sample_rate,
-				    SSTVENC_TS_UNIT_NANOSECONDS);
-
-				/* Total up time and sample count */
-				total_samples += remaining;
-				total_ns      += pulse->duration_ns;
-
-				/* Sanity check timing, adjust for any
-				 * slippage */
-				uint64_t expected_total_samples
-				    = sstvenc_ts_unit_to_samples(
-					total_ns, osc.sample_rate,
-					SSTVENC_TS_UNIT_NANOSECONDS);
-				if (expected_total_samples > total_samples) {
-					/*
-					 * Rounding error has caused a slip,
-					 * add samples to catch up.
-					 */
-					uint64_t diff = expected_total_samples
-							- total_samples;
-					remaining     += diff;
-					total_samples += diff;
-				}
-			}
-		}
-
-		/* Compute the next oscillator output sample */
-		sstvenc_osc_compute(&osc);
+		sstvenc_modulator_compute(&mod);
 
 		/* Fill the audio frame */
 		for (uint8_t ch = 0; ch < total_audio_channels; ch++) {
 			if (select_audio_channels & (1 << ch)) {
-				samples[ch] = osc.output;
+				samples[ch] = mod.osc.output;
 			} else {
 				samples[ch] = 0.0;
 			}
@@ -384,9 +329,6 @@ int main(int argc, char* argv[]) {
 				strerror(-au_res));
 			return (2);
 		}
-
-		/* Count this sample */
-		remaining--;
 	}
 
 	{
