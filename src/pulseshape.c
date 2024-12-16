@@ -8,6 +8,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <libsstvenc/oscillator.h>
 #include <libsstvenc/pulseshape.h>
 
 void sstvenc_ps_reset_samples(struct sstvenc_pulseshape* const ps,
@@ -113,6 +114,27 @@ void sstvenc_ps_compute(struct sstvenc_pulseshape* const ps) {
 		ps->output = 0.0;
 		break;
 	}
+}
+
+size_t sstvenc_psosc_fill_buffer(struct sstvenc_pulseshape* const ps,
+				 struct sstvenc_oscillator* const osc,
+				 double* buffer, size_t buffer_sz) {
+	size_t written_sz = 0;
+
+	while ((buffer_sz > 0) && (ps->phase < SSTVENC_PS_PHASE_DONE)) {
+		sstvenc_ps_compute(ps);
+		osc->amplitude = ps->output;
+
+		sstvenc_osc_compute(osc);
+		buffer[0] = osc->output;
+
+		buffer++;
+		buffer_sz--;
+
+		written_sz++;
+	}
+
+	return written_sz;
 }
 
 /*! @} */

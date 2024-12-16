@@ -18,6 +18,9 @@
 #include <math.h>
 #include <stdint.h>
 
+/* Forward declaration */
+struct sstvenc_oscillator;
+
 /*!
  * @defgroup pulseshape_states Pulse Shaper States
  * @{
@@ -109,8 +112,8 @@ struct sstvenc_pulseshape {
  * @param[in]		hold_time	New hold time (given as number of
  * 					samples).
  */
-void sstvenc_ps_reset_samples(struct sstvenc_pulseshape* const ps,
-			      uint32_t			       hold_time);
+void   sstvenc_ps_reset_samples(struct sstvenc_pulseshape* const ps,
+				uint32_t			 hold_time);
 
 /*!
  * Reset the pulse shape state machine with a new hold time, but otherwise
@@ -123,8 +126,8 @@ void sstvenc_ps_reset_samples(struct sstvenc_pulseshape* const ps,
  * hold_time. Must be one of the values given in
  * 					@ref timescale_units
  */
-void sstvenc_ps_reset(struct sstvenc_pulseshape* const ps, double hold_time,
-		      uint8_t time_unit);
+void   sstvenc_ps_reset(struct sstvenc_pulseshape* const ps, double hold_time,
+			uint8_t time_unit);
 
 /*!
  * Initialise a pulse shaper.
@@ -141,9 +144,9 @@ void sstvenc_ps_reset(struct sstvenc_pulseshape* const ps, double hold_time,
  * @param[in]	time_unit	The time unit used to measure @a rise_time,
  * 				@a hold_time and @a fall_time.
  */
-void sstvenc_ps_init(struct sstvenc_pulseshape* const ps, double amplitude,
-		     double rise_time, double hold_time, double fall_time,
-		     uint32_t sample_rate, uint8_t time_unit);
+void   sstvenc_ps_init(struct sstvenc_pulseshape* const ps, double amplitude,
+		       double rise_time, double hold_time, double fall_time,
+		       uint32_t sample_rate, uint8_t time_unit);
 
 /*!
  * Advance the pulse shaper to the next phase, regardless of whether it is
@@ -151,7 +154,7 @@ void sstvenc_ps_init(struct sstvenc_pulseshape* const ps, double amplitude,
  *
  * @param[out]	ps		The pulse shaper being advanced.
  */
-void sstvenc_ps_advance(struct sstvenc_pulseshape* const ps);
+void   sstvenc_ps_advance(struct sstvenc_pulseshape* const ps);
 
 /*!
  * Compute the next pulse shaper value and store it in the output field.
@@ -161,7 +164,25 @@ void sstvenc_ps_advance(struct sstvenc_pulseshape* const ps);
  *
  * @param[out]	ps		The pulse shaper being computed.
  */
-void sstvenc_ps_compute(struct sstvenc_pulseshape* const ps);
+void   sstvenc_ps_compute(struct sstvenc_pulseshape* const ps);
+
+/*!
+ * Fill the given buffer with audio samples from the oscillator shaped with
+ * the given pulse shaper.  Stop if we run out of buffer space or if the pulse
+ * shaper state machine finishes.  Return the number of samples generated.
+ *
+ * @param[inout]	ps		Pulse shaper state machine to pull
+ * 					envelope samples from.
+ * @param[inout]	osc		Sine wave oscillator.  Its amplitude
+ * will be modulated by the pulse shaper.
+ * @param[out]		buffer		Audio buffer to write samples to.
+ * @param[in]		buffer_sz	Size of the audio buffer in samples.
+ *
+ * @returns		Number of samples written to @a buffer
+ */
+size_t sstvenc_psosc_fill_buffer(struct sstvenc_pulseshape* const ps,
+				 struct sstvenc_oscillator* const osc,
+				 double* buffer, size_t buffer_sz);
 
 /*! @} */
 
