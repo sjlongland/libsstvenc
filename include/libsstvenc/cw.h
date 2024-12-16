@@ -163,16 +163,30 @@ struct sstvenc_cw_mod {
  * @param[in]		time_unit	The time unit used for measuring
  * 					@a dit_period and @a slope_period.
  */
-void sstvenc_cw_init(struct sstvenc_cw_mod* const cw, const char* text,
-		     double amplitude, double frequency, double dit_period,
-		     double slope_period, uint32_t sample_rate,
-		     uint8_t time_unit);
+void   sstvenc_cw_init(struct sstvenc_cw_mod* const cw, const char* text,
+		       double amplitude, double frequency, double dit_period,
+		       double slope_period, uint32_t sample_rate,
+		       uint8_t time_unit);
 
 /*!
  * Compute the next sample in the state machine.  The state machine will be
  * advanced to the next state and a sample written to sstvenc_cw_mod#output.
  */
-void sstvenc_cw_compute(struct sstvenc_cw_mod* const cw);
+void   sstvenc_cw_compute(struct sstvenc_cw_mod* const cw);
+
+/*!
+ * Fill the given buffer with audio samples from the CW modulator.  Stop if we
+ * run out of buffer space or if the CW state machine finishes.  Return the
+ * number of samples generated.
+ *
+ * @param[inout]	cw		CW state machine to pull samples from.
+ * @param[out]		buffer		Audio buffer to write samples to.
+ * @param[in]		buffer_sz	Size of the audio buffer in samples.
+ *
+ * @returns		Number of samples written to @a buffer
+ */
+size_t sstvenc_cw_fill_buffer(struct sstvenc_cw_mod* const cw, double* buffer,
+			      size_t buffer_sz);
 
 /*! @} */
 #endif

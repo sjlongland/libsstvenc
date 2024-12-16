@@ -520,9 +520,27 @@ void sstvenc_cw_compute(struct sstvenc_cw_mod* const cw) {
 		sstvenc_cw_handle_state_dahspace(cw);
 		break;
 	case SSTVENC_CW_MOD_STATE_DONE:
+	default:
 		sstvenc_cw_handle_state_done(cw);
 		return;
 	}
+}
+
+size_t sstvenc_cw_fill_buffer(struct sstvenc_cw_mod* const cw, double* buffer,
+			      size_t buffer_sz) {
+	size_t written_sz = 0;
+
+	while ((buffer_sz > 0) && (cw->state < SSTVENC_CW_MOD_STATE_DONE)) {
+		sstvenc_cw_compute(cw);
+
+		buffer[0] = cw->output;
+		buffer++;
+		buffer_sz--;
+
+		written_sz++;
+	}
+
+	return written_sz;
 }
 
 /*!
