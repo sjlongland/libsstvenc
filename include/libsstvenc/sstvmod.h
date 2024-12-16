@@ -79,6 +79,21 @@ void   sstvenc_modulator_init(struct sstvenc_mod* const	 mod,
 void   sstvenc_modulator_compute(struct sstvenc_mod* const mod);
 
 /*!
+ * Fill the given buffer with audio samples from the SSTV modulator.  Stop if
+ * we run out of buffer space or if the SSTV state machine finishes.  Return
+ * the number of samples generated.
+ *
+ * @param[inout]	mod		SSTV modulator state machine to pull
+ * 					samples from.
+ * @param[out]		buffer		Audio buffer to write samples to.
+ * @param[in]		buffer_sz	Size of the audio buffer in samples.
+ *
+ * @returns		Number of samples written to @a buffer
+ */
+size_t sstvenc_modulator_fill_buffer(struct sstvenc_mod* const mod,
+				     double* buffer, size_t buffer_sz);
+
+/*!
  * @}
  * @}
  */

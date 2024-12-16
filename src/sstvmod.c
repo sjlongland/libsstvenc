@@ -144,6 +144,23 @@ void sstvenc_modulator_compute(struct sstvenc_mod* const mod) {
 	}
 }
 
+size_t sstvenc_modulator_fill_buffer(struct sstvenc_mod* const mod,
+				     double* buffer, size_t buffer_sz) {
+	size_t written_sz = 0;
+
+	while ((buffer_sz > 0) && (mod->ps.phase < SSTVENC_PS_PHASE_DONE)) {
+		sstvenc_modulator_compute(mod);
+
+		buffer[0] = mod->osc.output;
+		buffer++;
+		buffer_sz--;
+
+		written_sz++;
+	}
+
+	return written_sz;
+}
+
 /*!
  * @}
  */
