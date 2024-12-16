@@ -13,9 +13,9 @@
  * due to the discrete sampling intervals.
  *
  * Like the @ref sstv component this is built on, the state machine state is
- * determined by observing sstvenc_mod#enc, in particular, the `phase` member
- * and comparing that to @ref sstv_phase.  When the value matches
- * @ref SSTVENC_ENCODER_PHASE_DONE, no more meaningful samples will be
+ * determined by observing sstvenc_mod#ps, in particular, the `phase` member
+ * and comparing that to @ref pulseshape_states.  When the value matches
+ * @ref SSTVENC_PS_PHASE_DONE, no more meaningful samples will be
  * emitted.
  *
  * The output is returned by the oscillator instance: sstvenc_mod#osc via its
@@ -67,16 +67,16 @@ struct sstvenc_mod {
  * @param[in]		time_unit	Time unit used to measure @a rise_time
  * 					and @a fall_time.
  */
-void sstvenc_modulator_init(struct sstvenc_mod* const  mod,
-			    const struct sstvenc_mode* mode,
-			    const char* fsk_id, const uint8_t* framebuffer,
-			    double rise_time, double fall_time,
-			    uint32_t sample_rate, uint8_t time_unit);
+void   sstvenc_modulator_init(struct sstvenc_mod* const	 mod,
+			      const struct sstvenc_mode* mode,
+			      const char* fsk_id, const uint8_t* framebuffer,
+			      double rise_time, double fall_time,
+			      uint32_t sample_rate, uint8_t time_unit);
 
 /*!
  * Compute the next audio sample to be emitted from the modulator.
  */
-void sstvenc_modulator_compute(struct sstvenc_mod* const mod);
+void   sstvenc_modulator_compute(struct sstvenc_mod* const mod);
 
 /*!
  * @}
