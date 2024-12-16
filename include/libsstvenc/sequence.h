@@ -362,9 +362,6 @@ struct sstvenc_sequencer {
 	 */
 	double	 regs[SSTVENC_SEQ_NUM_REGS];
 
-	/*! Time scale unit of measure */
-	uint8_t	 time_unit;
-
 	/*!
 	 * Sample rate in hertz.
 	 */
@@ -375,6 +372,9 @@ struct sstvenc_sequencer {
 	 * sstvenc_sequencer#steps.
 	 */
 	uint16_t step;
+
+	/*! Time scale unit of measure */
+	uint8_t	 time_unit;
 
 	/*! Sequencer state machine state, see @ref sequence_states */
 	uint8_t	 state;
