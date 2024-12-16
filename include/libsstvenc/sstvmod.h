@@ -60,9 +60,9 @@ struct sstvenc_mod {
  * @param[in]		framebuffer	Framebuffer data representing the
  * 					image.
  * @param[in]		rise_time	Carrier rise time, set to 0 to
- * disable.
+ * 					disable.
  * @param[in]		fall_time	Carrier fall time, set to 0 to
- * disable.
+ * 					disable.
  * @param[in]		sample_rate	Sample rate in Hz
  * @param[in]		time_unit	Time unit used to measure @a rise_time
  * 					and @a fall_time.
