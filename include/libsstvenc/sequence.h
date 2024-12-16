@@ -298,6 +298,23 @@
  * @}
  */
 
+/*!
+ * @defgroup sequence_toneslopes Tone slopes
+ * @{
+ * This bitmap decides whether we enable the rising or falling edges of the
+ * pulse shaper. Selectively turning these on and off allows us to "join"
+ * multiple tones together gapless.
+ */
+
+#define SSTVENC_SEQ_SLOPE_NONE		    (0) /*!< No slopes, rising or falling */
+#define SSTVENC_SEQ_SLOPE_RISING	    (1) /*!< Rising slope only */
+#define SSTVENC_SEQ_SLOPE_FALLING	    (2) /*!< Falling slope only */
+#define SSTVENC_SEQ_SLOPE_BOTH		    (3) /*!< Both slopes, rising and falling */
+
+/*!
+ * @}
+ */
+
 struct sstvenc_sequencer;
 struct sstvenc_sequencer_step;
 
@@ -430,7 +447,13 @@ struct sstvenc_sequencer_step {
 			 * be emitting silence or a tone for.  Set to INFINITY
 			 * for an infinite time period.
 			 */
-			double duration;
+			double	duration;
+			/*!
+			 * Slopes enabled.  Whether or not we enable the
+			 * rising or falling slopes on the pulse.  Not used
+			 * for silences.
+			 */
+			uint8_t slopes;
 		} duration;
 
 		/*!
@@ -569,10 +592,12 @@ void sstvenc_sequencer_step_silence(struct sstvenc_sequencer_step* const step,
  * @param[out]		step		Sequencer step
  * @param[in]		duration	The length of time to emit a tone.
  * 					Use INFINITY for indefinite time
+ * @param[in]		slopes		Which slopes to enable
+ * 					(see @ref sequence_toneslopes)
  * periods.
  */
 void sstvenc_sequencer_step_tone(struct sstvenc_sequencer_step* const step,
-				 double duration);
+				 double duration, uint8_t slopes);
 
 /*!
  * Configure a step that emits CW text.

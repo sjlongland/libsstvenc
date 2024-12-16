@@ -96,9 +96,10 @@ void sstvenc_sequencer_step_silence(struct sstvenc_sequencer_step* const step,
 }
 
 void sstvenc_sequencer_step_tone(struct sstvenc_sequencer_step* const step,
-				 double duration) {
+				 double duration, uint8_t slopes) {
 	sstvenc_sequencer_step_duration(step, SSTVENC_SEQ_STEP_TYPE_EMIT_TONE,
 					duration);
+	step->args.duration.slopes = slopes;
 }
 
 void sstvenc_sequencer_step_cw(struct sstvenc_sequencer_step* const step,
@@ -262,12 +263,16 @@ static void sstvenc_sequencer_begin_tone(
 	sstvenc_sequencer_next_state(seq, SSTVENC_SEQ_STATE_BEGIN_SILENCE,
 				     true);
 
-	sstvenc_ps_init(&(seq->vars.tone.ps),
-			seq->regs[SSTVENC_SEQ_REG_AMPLITUDE],
-			seq->regs[SSTVENC_SEQ_REG_PULSE_RISE],
-			step->args.duration.duration,
-			seq->regs[SSTVENC_SEQ_REG_PULSE_FALL],
-			seq->sample_rate, seq->time_unit);
+	sstvenc_ps_init(
+	    &(seq->vars.tone.ps), seq->regs[SSTVENC_SEQ_REG_AMPLITUDE],
+	    (step->args.duration.slopes & SSTVENC_SEQ_SLOPE_RISING)
+		? seq->regs[SSTVENC_SEQ_REG_PULSE_RISE]
+		: 0.0,
+	    step->args.duration.duration,
+	    (step->args.duration.slopes & SSTVENC_SEQ_SLOPE_FALLING)
+		? seq->regs[SSTVENC_SEQ_REG_PULSE_FALL]
+		: 0.0,
+	    seq->sample_rate, seq->time_unit);
 
 	if (init_osc) {
 		sstvenc_osc_init(&(seq->vars.tone.osc), 0.0,
