@@ -174,7 +174,7 @@ void   sstvenc_ps_compute(struct sstvenc_pulseshape* const ps);
  * @param[inout]	ps		Pulse shaper state machine to pull
  * 					envelope samples from.
  * @param[inout]	osc		Sine wave oscillator.  Its amplitude
- * will be modulated by the pulse shaper.
+ * 					will be modulated by the pulse shaper.
  * @param[out]		buffer		Audio buffer to write samples to.
  * @param[in]		buffer_sz	Size of the audio buffer in samples.
  *
