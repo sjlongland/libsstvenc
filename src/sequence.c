@@ -126,20 +126,10 @@ void sstvenc_sequencer_init(struct sstvenc_sequencer* const	 seq,
 			    const struct sstvenc_sequencer_step* steps,
 			    sstvenc_sequencer_event_cb*		 event_cb,
 			    const void* event_cb_ctx, uint32_t sample_rate) {
-	seq->step			      = 0;
-	seq->state			      = SSTVENC_SEQ_STATE_INIT;
-	seq->steps			      = steps;
-	seq->event_cb			      = event_cb;
-	seq->event_cb_ctx		      = event_cb_ctx;
-	seq->sample_rate		      = sample_rate;
-
-	seq->regs[SSTVENC_SEQ_REG_AMPLITUDE]  = 1.0;
-	seq->regs[SSTVENC_SEQ_REG_FREQUENCY]  = 800.0;
-	seq->regs[SSTVENC_SEQ_REG_PHASE]      = 0.0;
-	seq->regs[SSTVENC_SEQ_REG_PULSE_RISE] = 0.002;
-	seq->regs[SSTVENC_SEQ_REG_PULSE_FALL] = 0.002;
-	seq->regs[SSTVENC_SEQ_REG_DIT_PERIOD] = 0.05;
-	seq->time_unit			      = SSTVENC_TS_UNIT_SECONDS;
+	seq->steps	  = steps;
+	seq->event_cb	  = event_cb;
+	seq->event_cb_ctx = event_cb_ctx;
+	sstvenc_sequencer_reset(seq);
 }
 
 /*!
@@ -366,6 +356,18 @@ static void sstvenc_sequencer_exec_step(struct sstvenc_sequencer* const seq) {
 		sstvenc_sequencer_end(seq);
 		break;
 	}
+}
+
+void sstvenc_sequencer_reset(struct sstvenc_sequencer* const seq) {
+	seq->step			      = 0;
+	seq->state			      = SSTVENC_SEQ_STATE_INIT;
+	seq->regs[SSTVENC_SEQ_REG_AMPLITUDE]  = 1.0;
+	seq->regs[SSTVENC_SEQ_REG_FREQUENCY]  = 800.0;
+	seq->regs[SSTVENC_SEQ_REG_PHASE]      = 0.0;
+	seq->regs[SSTVENC_SEQ_REG_PULSE_RISE] = 0.002;
+	seq->regs[SSTVENC_SEQ_REG_PULSE_FALL] = 0.002;
+	seq->regs[SSTVENC_SEQ_REG_DIT_PERIOD] = 0.05;
+	seq->time_unit			      = SSTVENC_TS_UNIT_SECONDS;
 }
 
 void sstvenc_sequencer_advance(struct sstvenc_sequencer* const seq) {

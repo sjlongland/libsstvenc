@@ -648,6 +648,11 @@ void sstvenc_sequencer_init(struct sstvenc_sequencer* const	 seq,
 			    const void* event_cb_ctx, uint32_t sample_rate);
 
 /*!
+ * Reset the state machine back to the initial state.
+ */
+void sstvenc_sequencer_reset(struct sstvenc_sequencer* const seq);
+
+/*!
  * Advance the state of the state machine when generating infinite tones or
  * silence.  This does nothing unless the state machine is in one of the
  * following states:
