@@ -49,6 +49,9 @@ static uint64_t htobe64(uint64_t in) {
 /*! SunAU encoder state bit: header is written */
 #define SSTVENC_SUNAU_STATE_HEADER (0x0001)
 
+/*! SunAU decoder state bit: end of file has been reached */
+#define SSTVENC_SUNAU_STATE_EOF	   (0x8000)
+
 /*! Convert a 32-bit IEEE-754 float to big-endian */
 static uint32_t fhtobe32(float in) {
 	union {
@@ -92,6 +95,82 @@ static double dbe64toh(uint64_t in) {
 	tmp.ui = be64toh(in);
 	return be64toh(tmp.f);
 }
+
+/*!
+ * Initialise the audio source ready for reading samples.  The
+ * function should assume the existing state of the context is
+ * meaningless.
+ *
+ * @param[inout]	ausrc	Audio source context
+ *
+ * @retval		0	Success
+ * @retval		<0	An error from `errno.h`, negated.
+ */
+static int
+sstvenc_sunau_src_init(struct sstvenc_sequencer_ausrc* const ausrc);
+
+/*!
+ * Reset the audio source back to the initial state.  The function may
+ * assume the structure has been initialised already.  Resources can
+ * be released if this would be easier than resetting their states.
+ *
+ * In the event of an error, it is the responsibility of the audio
+ * interface to clean up its state and release resources.
+ *
+ * @param[inout]	ausrc	Audio source context
+ *
+ * @retval		0	Success
+ * @retval		<0	An error from `errno.h`, negated.
+ */
+static int
+sstvenc_sunau_src_reset(struct sstvenc_sequencer_ausrc* const ausrc);
+
+/*!
+ * Read and return the next audio sample.  The function may assume the
+ * context has been initialised already (that is,
+ * sstvenc_sequencer_ausrc_interface#init has been called).
+ *
+ * When we reach the end, the audio source interface is responsible
+ * for freeing/closing resources acquired in the initialisation stage.
+ * Calling this function again after this point should be a no-op
+ * until sstvenc_sequencer_ausrc_interface#reset is called.
+ *
+ * In the event of an error, it is the responsibility of the audio
+ * interface to clean up its state and release resources.
+ *
+ * @param[inout]	ausrc	Audio source context
+ * @param[out]		sample	The audio sample read
+ *
+ * @retval		1	Success, a sample has been written.
+ * @retval		0	Success, there are no more samples to
+ * 				read.
+ * @retval		<0	An error from `errno.h`, negated.
+ */
+static int sstvenc_sunau_src_next(struct sstvenc_sequencer_ausrc* const ausrc,
+				  double* const sample);
+
+/*!
+ * Close the audio source.  This should release any resources acquired
+ * during initialisation.
+ *
+ * @param[inout]	ausrc	Audio source context
+ *
+ * @retval		0	Success
+ * @retval		<0	An error from `errno.h`, negated.
+ */
+static int
+sstvenc_sunau_src_close(struct sstvenc_sequencer_ausrc* const ausrc);
+
+/*!
+ * SSTV sequencer audio stream interface.
+ */
+const static struct sstvenc_sequencer_ausrc_interface sstvenc_sunau_src_iface
+    = {
+	.init  = sstvenc_sunau_src_init,
+	.reset = sstvenc_sunau_src_reset,
+	.next  = sstvenc_sunau_src_next,
+	.close = sstvenc_sunau_src_close,
+};
 
 /*!
  * Write the Sun Audio header to the output file.
@@ -406,7 +485,9 @@ int sstvenc_sunau_dec_init_fh(struct sstvenc_sunau* const dec, FILE* fh) {
 	}
 
 	/* All ready */
-	dec->fh = fh;
+	dec->fh		= fh;
+	dec->written_sz = hdr[1];
+	dec->state	= 0;
 	return 0;
 }
 
@@ -426,6 +507,17 @@ int sstvenc_sunau_dec_init(struct sstvenc_sunau* const dec,
 	return res;
 }
 
+int sstvenc_sunau_dec_reset(struct sstvenc_sunau* const dec) {
+	if (fseek(dec->fh, dec->written_sz, SEEK_SET) < 0) {
+		/* Seek failed */
+		return -errno;
+	} else {
+		/* Clear the EOF bit, as we should be back at the start */
+		dec->state &= ~SSTVENC_SUNAU_STATE_EOF;
+		return 0;
+	}
+}
+
 static int sstvenc_sunau_read_s8(struct sstvenc_sunau* const dec,
 				 size_t* const n_samples, double* samples) {
 	/* Use the end of the output buffer as scratch space. */
@@ -441,6 +533,8 @@ static int sstvenc_sunau_read_s8(struct sstvenc_sunau* const dec,
 		/* Short read, check for read errors */
 		if (errno != 0) {
 			return -errno;
+		} else {
+			dec->state |= SSTVENC_SUNAU_STATE_EOF;
 		}
 	}
 
@@ -472,6 +566,8 @@ static int sstvenc_sunau_read_s16(struct sstvenc_sunau* const dec,
 		/* Short read, check for read errors */
 		if (errno != 0) {
 			return -errno;
+		} else {
+			dec->state |= SSTVENC_SUNAU_STATE_EOF;
 		}
 	}
 
@@ -505,6 +601,8 @@ static int sstvenc_sunau_read_s32(struct sstvenc_sunau* const dec,
 		/* Short read, check for read errors */
 		if (errno != 0) {
 			return -errno;
+		} else {
+			dec->state |= SSTVENC_SUNAU_STATE_EOF;
 		}
 	}
 
@@ -538,6 +636,8 @@ static int sstvenc_sunau_read_f32(struct sstvenc_sunau* const dec,
 		/* Short read, check for read errors */
 		if (errno != 0) {
 			return -errno;
+		} else {
+			dec->state |= SSTVENC_SUNAU_STATE_EOF;
 		}
 	}
 
@@ -568,6 +668,8 @@ static int sstvenc_sunau_read_f64(struct sstvenc_sunau* const dec,
 		/* Short read, check for read errors */
 		if (errno != 0) {
 			return -errno;
+		} else {
+			dec->state |= SSTVENC_SUNAU_STATE_EOF;
 		}
 	}
 
@@ -612,6 +714,113 @@ int sstvenc_sunau_dec_close(struct sstvenc_sunau* const dec) {
 	} else {
 		return 0;
 	}
+}
+
+void sstvenc_sequencer_step_sunau(struct sstvenc_sequencer_step* const step,
+				  struct sstvenc_sunau_src* const      src,
+				  const char* path, double* buffer,
+				  uint16_t buffer_sz, uint8_t channels) {
+	src->src.iface	 = &sstvenc_sunau_src_iface;
+	src->src.context = (void*)src;
+	src->path	 = path;
+	src->channels	 = channels;
+	src->buffer	 = buffer;
+	src->buffer_sz	 = buffer_sz;
+}
+
+static int
+sstvenc_sunau_src_init(struct sstvenc_sequencer_ausrc* const ausrc) {
+	struct sstvenc_sunau_src* const src
+	    = (struct sstvenc_sunau_src*)(ausrc->context);
+	int res = sstvenc_sunau_dec_init(&(src->dec), src->path);
+	if (res == 0) {
+		src->buffer_ptr = 0;
+		src->buffer_len = 0;
+	}
+	return res;
+}
+
+static int
+sstvenc_sunau_src_reset(struct sstvenc_sequencer_ausrc* const ausrc) {
+	struct sstvenc_sunau_src* const src
+	    = (struct sstvenc_sunau_src*)(ausrc->context);
+	int res = sstvenc_sunau_dec_reset(&(src->dec));
+	if (res == 0) {
+		src->buffer_ptr = 0;
+		src->buffer_len = 0;
+	}
+	return res;
+}
+
+static int sstvenc_sunau_src_next(struct sstvenc_sequencer_ausrc* const ausrc,
+				  double* const sample) {
+	struct sstvenc_sunau_src* const src
+	    = (struct sstvenc_sunau_src*)(ausrc->context);
+
+	double	output = 0.0;
+	uint8_t count  = 0;
+
+	for (uint8_t ch = 0; ch < src->dec.channels; ch++) {
+		if (src->buffer_ptr >= src->buffer_len) {
+			size_t sz = src->buffer_sz;
+
+			if (src->dec.state & SSTVENC_SUNAU_STATE_EOF) {
+				/* There is nothing more to read */
+				if (count) {
+					*sample = output / (double)count;
+				}
+
+				if (src->dec.fh) {
+					return sstvenc_sunau_dec_close(
+					    &(src->dec));
+				} else {
+					return 0;
+				}
+			}
+
+			int res = sstvenc_sunau_dec_read(&(src->dec), &sz,
+							 src->buffer);
+			if (res < 0) {
+				/* Read failed, attempt to close the file */
+				sstvenc_sunau_dec_close(&(src->dec));
+				return res;
+			}
+
+			/* Read succeeded */
+			src->buffer_len = sz;
+			src->buffer_ptr = 0;
+
+			if (sz == 0) {
+				/* There was nothing read, this is it */
+				if (count) {
+					*sample = output / (double)count;
+				}
+
+				return sstvenc_sunau_dec_close(&(src->dec));
+			}
+		}
+
+		if (src->channels & (1 << ch)) {
+			output += src->buffer[src->buffer_ptr];
+			count++;
+		}
+
+		src->buffer_ptr++;
+	}
+
+	if (count) {
+		*sample = output / (double)count;
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+static int
+sstvenc_sunau_src_close(struct sstvenc_sequencer_ausrc* const ausrc) {
+	struct sstvenc_sunau_src* const src
+	    = (struct sstvenc_sunau_src*)(ausrc->context);
+	return sstvenc_sunau_dec_close(&(src->dec));
 }
 
 /*! @} */

@@ -21,6 +21,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <libsstvenc/sequence.h>
+
 /*!
  * @addtogroup sunau_formats Audio encoding formats
  * @{
@@ -45,7 +47,8 @@
 struct sstvenc_sunau {
 	/*! Pointer to the open file for reading or writing */
 	FILE*	 fh;
-	/*! Number of bytes written, not used when reading */
+	/*! Number of bytes written, stores the size of the header when
+	 * reading */
 	uint32_t written_sz;
 	/*! File sample rate in Hz */
 	uint32_t sample_rate;
@@ -55,6 +58,36 @@ struct sstvenc_sunau {
 	uint8_t	 encoding;
 	/*! Channel count */
 	uint8_t	 channels;
+};
+
+/*!
+ * SSTV sequencer arbitrary audio source.  Reads from the given audio file
+ * which is assumed to contain samples at the expected sample rate.
+ */
+struct sstvenc_sunau_src {
+	/*! Sample read buffer pointer */
+	double*			       buffer;
+
+	/*! SSTV audio source context */
+	struct sstvenc_sequencer_ausrc src;
+
+	/*! Decoder state machine */
+	struct sstvenc_sunau	       dec;
+
+	/*! File path. */
+	const char*		       path;
+
+	/*! Total size of the buffer */
+	uint16_t		       buffer_sz;
+
+	/*! Number of samples present in the buffer */
+	uint16_t		       buffer_len;
+
+	/*! Position within the buffer */
+	uint16_t		       buffer_ptr;
+
+	/*! Channel selection bitmap */
+	uint8_t			       channels;
 };
 
 /*!
@@ -161,6 +194,16 @@ int sstvenc_sunau_dec_init_fh(struct sstvenc_sunau* const dec, FILE* fh);
 int sstvenc_sunau_dec_init(struct sstvenc_sunau* const dec, const char* path);
 
 /*!
+ * Reset the file back to the beginning.
+ *
+ * @param[out]	dec		SunAU decoder context
+ *
+ * @retval	0		Success
+ * @retval	<0		`-errno` result from `fseek()` call.
+ */
+int sstvenc_sunau_dec_reset(struct sstvenc_sunau* const dec);
+
+/*!
  * Read some audio samples from the file.  n_samples is assumed to be a
  * multiple of the channel count.
  *
@@ -186,6 +229,26 @@ int sstvenc_sunau_dec_read(struct sstvenc_sunau* const enc,
  * @retval		<0		Write error `errno` from `fclose()`.
  */
 int sstvenc_sunau_dec_close(struct sstvenc_sunau* const dec);
+
+/*!
+ * Configure a sequencer step that emits an audio recording.
+ *
+ * @param[out]		step		Sequencer step
+ * @param[inout]	src		SunAU decoder state machine.
+ * @param[in]		path 		The path to the audio file to play.
+ * @param[inout]	buffer		Location to a buffer we can use to
+ * 					store samples that have been read from
+ * the file.
+ * @param[in]		buffer_sz	The size of the buffer provided.
+ * @param[in]		channels	The channels to read from the audio
+ * 					file.  They will be summed into a mono
+ * 					output.  Use UINT8_MAX for all
+ * 					channels.
+ */
+void sstvenc_sequencer_step_sunau(struct sstvenc_sequencer_step* const step,
+				  struct sstvenc_sunau_src* const      src,
+				  const char* path, double* buffer,
+				  uint16_t buffer_sz, uint8_t channels);
 
 /*! @} */
 #endif
