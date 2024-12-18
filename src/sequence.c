@@ -126,6 +126,7 @@ void sstvenc_sequencer_init(struct sstvenc_sequencer* const	 seq,
 			    const struct sstvenc_sequencer_step* steps,
 			    sstvenc_sequencer_event_cb*		 event_cb,
 			    const void* event_cb_ctx, uint32_t sample_rate) {
+	seq->err  	  = 0;
 	seq->steps	  = steps;
 	seq->event_cb	  = event_cb;
 	seq->event_cb_ctx = event_cb_ctx;
@@ -157,6 +158,19 @@ static void sstvenc_sequencer_next_state(struct sstvenc_sequencer* const seq,
 		if (notify && seq->event_cb) {
 			seq->event_cb(seq);
 		}
+	}
+}
+
+/*!
+ * Abort the state machine with an error.
+ */
+static void sstvenc_sequencer_abort(struct sstvenc_sequencer* const seq,
+				    int				    err) {
+	seq->state = SSTVENC_SEQ_STATE_DONE;
+	seq->err   = err;
+
+	if (seq->event_cb) {
+		seq->event_cb(seq);
 	}
 }
 

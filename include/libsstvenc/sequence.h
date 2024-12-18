@@ -379,10 +379,14 @@ struct sstvenc_sequencer {
 	 */
 	double	 regs[SSTVENC_SEQ_NUM_REGS];
 
-	/*!
-	 * Sample rate in hertz.
-	 */
+	/*! Sample rate in hertz. */
 	uint32_t sample_rate;
+
+	/*!
+	 * Error status when the state machine finishes in a failure state,
+	 * the values are taken from `errno.h`.
+	 */
+	int	 err;
 
 	/*!
 	 * The current step being executed.  This is an index into
