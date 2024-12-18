@@ -39,13 +39,13 @@
  */
 
 /*!
- * Encoder context.  Stores the fields necessary to construct the header and
- * the file pointer.
+ * Encoder/decoder context.  Stores the fields necessary to construct the
+ * header and the file pointer.
  */
-struct sstvenc_sunau_enc {
-	/*! Pointer to the open file for writing */
+struct sstvenc_sunau {
+	/*! Pointer to the open file for reading or writing */
 	FILE*	 fh;
-	/*! Number of bytes written */
+	/*! Number of bytes written, not used when reading */
 	uint32_t written_sz;
 	/*! File sample rate in Hz */
 	uint32_t sample_rate;
@@ -85,7 +85,7 @@ int sstvenc_sunau_enc_check(uint32_t sample_rate, uint8_t encoding,
  * @retval		-EINVAL		Invalid sample rate, encoding or
  * channel count
  */
-int sstvenc_sunau_enc_init_fh(struct sstvenc_sunau_enc* const enc, FILE* fh,
+int sstvenc_sunau_enc_init_fh(struct sstvenc_sunau* const enc, FILE* fh,
 			      uint32_t sample_rate, uint8_t encoding,
 			      uint8_t channels);
 
@@ -102,9 +102,9 @@ int sstvenc_sunau_enc_init_fh(struct sstvenc_sunau_enc* const enc, FILE* fh,
  * @retval	-EINVAL		Invalid sample rate, encoding or channel count
  * @retval	<0		`-errno` result from `fopen()` call.
  */
-int sstvenc_sunau_enc_init(struct sstvenc_sunau_enc* const enc,
-			   const char* path, uint32_t sample_rate,
-			   uint8_t encoding, uint8_t channels);
+int sstvenc_sunau_enc_init(struct sstvenc_sunau* const enc, const char* path,
+			   uint32_t sample_rate, uint8_t encoding,
+			   uint8_t channels);
 
 /*!
  * Write some audio samples to the file.  Audio is assumed to be a whole
@@ -120,8 +120,8 @@ int sstvenc_sunau_enc_init(struct sstvenc_sunau_enc* const enc,
  * multiple of `enc->channels`)
  * @retval		<0		Write error `errno` from `fwrite()`
  */
-int sstvenc_sunau_enc_write(struct sstvenc_sunau_enc* const enc,
-			    size_t n_samples, const double* samples);
+int sstvenc_sunau_enc_write(struct sstvenc_sunau* const enc, size_t n_samples,
+			    const double* samples);
 
 /*!
  * Finish writing the file and close it.
@@ -132,7 +132,7 @@ int sstvenc_sunau_enc_write(struct sstvenc_sunau_enc* const enc,
  * @retval		<0		Write error `errno` from `fwrite()` or
  * `fclose()`.
  */
-int sstvenc_sunau_enc_close(struct sstvenc_sunau_enc* const enc);
+int sstvenc_sunau_enc_close(struct sstvenc_sunau* const enc);
 
 /*! @} */
 #endif

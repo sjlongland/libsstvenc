@@ -63,8 +63,7 @@ static uint64_t dhtobe64(double in) {
 /*!
  * Write the Sun Audio header to the output file.
  */
-static int
-sstvenc_sunau_enc_write_header(struct sstvenc_sunau_enc* const enc) {
+static int sstvenc_sunau_enc_write_header(struct sstvenc_sunau* const enc) {
 	uint32_t hdr[7] = {
 	    SSTVENC_SUNAU_MAGIC, // Magic ".snd"
 	    sizeof(hdr),	 // Data offset: 28 bytes (7*4-bytes)
@@ -98,7 +97,7 @@ sstvenc_sunau_enc_write_header(struct sstvenc_sunau_enc* const enc) {
 /*!
  * Write the given samples in signed 8-bit integer format.
  */
-static int sstvenc_sunau_write_s8(struct sstvenc_sunau_enc* const enc,
+static int sstvenc_sunau_write_s8(struct sstvenc_sunau* const enc,
 				  size_t n_sample, const double* sample) {
 	/* Scale to 8-bit fixed-point */
 	int8_t isample[n_sample];
@@ -121,7 +120,7 @@ static int sstvenc_sunau_write_s8(struct sstvenc_sunau_enc* const enc,
 /*!
  * Write the given samples in signed 16-bit integer format.
  */
-static int sstvenc_sunau_write_s16(struct sstvenc_sunau_enc* const enc,
+static int sstvenc_sunau_write_s16(struct sstvenc_sunau* const enc,
 				   size_t n_sample, const double* sample) {
 	/* Scale to 16-bit fixed-point */
 	int16_t isample[n_sample];
@@ -146,7 +145,7 @@ static int sstvenc_sunau_write_s16(struct sstvenc_sunau_enc* const enc,
 /*!
  * Write the given samples in signed 32-bit integer format.
  */
-static int sstvenc_sunau_write_s32(struct sstvenc_sunau_enc* const enc,
+static int sstvenc_sunau_write_s32(struct sstvenc_sunau* const enc,
 				   size_t n_sample, const double* sample) {
 	/* Scale to 32-bit fixed-point */
 	int32_t isample[n_sample];
@@ -171,7 +170,7 @@ static int sstvenc_sunau_write_s32(struct sstvenc_sunau_enc* const enc,
 /*!
  * Write the given samples in 32-bit IEEE-754 floating-point format.
  */
-static int sstvenc_sunau_write_f32(struct sstvenc_sunau_enc* const enc,
+static int sstvenc_sunau_write_f32(struct sstvenc_sunau* const enc,
 				   size_t n_sample, const double* sample) {
 	/* Convert to big-endian float */
 	int32_t fsample[n_sample];
@@ -194,7 +193,7 @@ static int sstvenc_sunau_write_f32(struct sstvenc_sunau_enc* const enc,
 /*!
  * Write the given samples in 64-bit IEEE-754 floating-point format.
  */
-static int sstvenc_sunau_write_f64(struct sstvenc_sunau_enc* const enc,
+static int sstvenc_sunau_write_f64(struct sstvenc_sunau* const enc,
 				   size_t n_sample, const double* sample) {
 	/* Convert to big-endian float */
 	int64_t fsample[n_sample];
@@ -234,7 +233,7 @@ int sstvenc_sunau_enc_check(uint32_t sample_rate, uint8_t encoding,
 	return 0;
 }
 
-int sstvenc_sunau_enc_init_fh(struct sstvenc_sunau_enc* const enc, FILE* fh,
+int sstvenc_sunau_enc_init_fh(struct sstvenc_sunau* const enc, FILE* fh,
 			      uint32_t sample_rate, uint8_t encoding,
 			      uint8_t channels) {
 	int res = sstvenc_sunau_enc_check(sample_rate, encoding, channels);
@@ -252,9 +251,9 @@ int sstvenc_sunau_enc_init_fh(struct sstvenc_sunau_enc* const enc, FILE* fh,
 	return 0;
 }
 
-int sstvenc_sunau_enc_init(struct sstvenc_sunau_enc* const enc,
-			   const char* path, uint32_t sample_rate,
-			   uint8_t encoding, uint8_t channels) {
+int sstvenc_sunau_enc_init(struct sstvenc_sunau* const enc, const char* path,
+			   uint32_t sample_rate, uint8_t encoding,
+			   uint8_t channels) {
 	int res = sstvenc_sunau_enc_check(sample_rate, encoding, channels);
 	if (res < 0) {
 		return res;
@@ -274,8 +273,8 @@ int sstvenc_sunau_enc_init(struct sstvenc_sunau_enc* const enc,
 	return 0;
 }
 
-int sstvenc_sunau_enc_write(struct sstvenc_sunau_enc* const enc,
-			    size_t n_samples, const double* samples) {
+int sstvenc_sunau_enc_write(struct sstvenc_sunau* const enc, size_t n_samples,
+			    const double* samples) {
 	if ((n_samples % enc->channels) != 0) {
 		return -EINVAL;
 	}
@@ -304,7 +303,7 @@ int sstvenc_sunau_enc_write(struct sstvenc_sunau_enc* const enc,
 	}
 }
 
-int sstvenc_sunau_enc_close(struct sstvenc_sunau_enc* const enc) {
+int sstvenc_sunau_enc_close(struct sstvenc_sunau* const enc) {
 	if (!(enc->state & SSTVENC_SUNAU_STATE_HEADER)) {
 		int res = sstvenc_sunau_enc_write_header(enc);
 		if (res < 0) {
