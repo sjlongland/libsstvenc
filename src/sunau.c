@@ -12,7 +12,12 @@
  * Magic bytes at start of the Sun Audio header.  This is in fact, the ASCII
  * characters ".snd".
  */
-#define SSTVENC_SUNAU_MAGIC (0x2e736e64u)
+#define SSTVENC_SUNAU_MAGIC	(0x2e736e64u)
+
+/*!
+ * Size of a Sun Audio header in 32-bit words.
+ */
+#define SSTVENC_SUNAU_HEADER_SZ (7)
 
 #include <assert.h>
 #include <libsstvenc/sunau.h>
@@ -23,10 +28,16 @@
  * https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/endian.h.html
  */
 #include <arpa/inet.h>
+static uint16_t be16toh(uint16_t in) { return ntohs(in); }
 static uint16_t htobe16(uint16_t in) { return htons(in); }
 
+static uint32_t be32toh(uint32_t in) { return ntohl(in); }
 static uint32_t htobe32(uint32_t in) { return htonl(in); }
 
+static uint64_t be64toh(uint64_t in) {
+	return ((uint64_t)((((uint64_t)ntohl(in >> 32)) << 32)
+			   | ntohl(in & UINT32_MAX)));
+}
 static uint64_t htobe64(uint64_t in) {
 	return ((uint64_t)((((uint64_t)htonl(in >> 32)) << 32)
 			   | htonl(in & UINT32_MAX)));
@@ -49,6 +60,17 @@ static uint32_t fhtobe32(float in) {
 	return htobe32(tmp.ui);
 }
 
+/*! Convert a 32-bit IEEE-754 float from big-endian */
+static float fbe32toh(uint32_t in) {
+	union {
+		float	 f;
+		uint32_t ui;
+	} tmp;
+
+	tmp.ui = be32toh(in);
+	return be32toh(tmp.f);
+}
+
 /*! Convert a 64-bit IEEE-754 float to big-endian */
 static uint64_t dhtobe64(double in) {
 	union {
@@ -60,11 +82,22 @@ static uint64_t dhtobe64(double in) {
 	return htobe64(tmp.ui);
 }
 
+/*! Convert a 64-bit IEEE-754 float from big-endian */
+static double dbe64toh(uint64_t in) {
+	union {
+		double	 f;
+		uint64_t ui;
+	} tmp;
+
+	tmp.ui = be64toh(in);
+	return be64toh(tmp.f);
+}
+
 /*!
  * Write the Sun Audio header to the output file.
  */
 static int sstvenc_sunau_enc_write_header(struct sstvenc_sunau* const enc) {
-	uint32_t hdr[7] = {
+	uint32_t hdr[SSTVENC_SUNAU_HEADER_SZ] = {
 	    SSTVENC_SUNAU_MAGIC, // Magic ".snd"
 	    sizeof(hdr),	 // Data offset: 28 bytes (7*4-bytes)
 	    UINT32_MAX,		 // Data size: unknown for now
@@ -79,14 +112,15 @@ static int sstvenc_sunau_enc_write_header(struct sstvenc_sunau* const enc) {
 	assert(!(enc->state & SSTVENC_SUNAU_STATE_HEADER));
 
 	/* Convert to big-endian */
-	for (int i = 0; i < 7; i++) {
+	for (int i = 0; i < SSTVENC_SUNAU_HEADER_SZ; i++) {
 		/* Byte swap to big-endian */
 		hdr[i] = htobe32(hdr[i]);
 	}
 
 	/* Write */
-	size_t res = fwrite(hdr, sizeof(int32_t), 7, enc->fh);
-	if (res < 7) {
+	size_t res
+	    = fwrite(hdr, sizeof(int32_t), SSTVENC_SUNAU_HEADER_SZ, enc->fh);
+	if (res < SSTVENC_SUNAU_HEADER_SZ) {
 		return -errno;
 	} else {
 		enc->state |= SSTVENC_SUNAU_STATE_HEADER;
@@ -213,8 +247,8 @@ static int sstvenc_sunau_write_f64(struct sstvenc_sunau* const enc,
 	}
 }
 
-int sstvenc_sunau_enc_check(uint32_t sample_rate, uint8_t encoding,
-			    uint8_t channels) {
+int sstvenc_sunau_check(uint32_t sample_rate, uint8_t encoding,
+			uint8_t channels) {
 	if (!channels)
 		return -EINVAL;
 	if (!sample_rate)
@@ -236,7 +270,7 @@ int sstvenc_sunau_enc_check(uint32_t sample_rate, uint8_t encoding,
 int sstvenc_sunau_enc_init_fh(struct sstvenc_sunau* const enc, FILE* fh,
 			      uint32_t sample_rate, uint8_t encoding,
 			      uint8_t channels) {
-	int res = sstvenc_sunau_enc_check(sample_rate, encoding, channels);
+	int res = sstvenc_sunau_check(sample_rate, encoding, channels);
 	if (res < 0) {
 		return res;
 	}
@@ -254,7 +288,7 @@ int sstvenc_sunau_enc_init_fh(struct sstvenc_sunau* const enc, FILE* fh,
 int sstvenc_sunau_enc_init(struct sstvenc_sunau* const enc, const char* path,
 			   uint32_t sample_rate, uint8_t encoding,
 			   uint8_t channels) {
-	int res = sstvenc_sunau_enc_check(sample_rate, encoding, channels);
+	int res = sstvenc_sunau_check(sample_rate, encoding, channels);
 	if (res < 0) {
 		return res;
 	}
@@ -327,6 +361,253 @@ int sstvenc_sunau_enc_close(struct sstvenc_sunau* const enc) {
 	/* If not, no harm done!  We can close the file now. */
 	if (fclose(enc->fh) != 0) {
 		/* Close failed */
+		return -errno;
+	} else {
+		return 0;
+	}
+}
+
+int sstvenc_sunau_dec_init_fh(struct sstvenc_sunau* const dec, FILE* fh) {
+	uint32_t hdr[SSTVENC_SUNAU_HEADER_SZ];
+	int	 res = 0;
+
+	if (fread(hdr, sizeof(hdr), 1, fh) < 1) {
+		/* Incomplete or failed read */
+		return -errno;
+	}
+
+	/* Convert to host-endian format */
+	for (uint8_t i = 0; i < SSTVENC_SUNAU_HEADER_SZ; i++) {
+		hdr[i] = be32toh(hdr[i]);
+	}
+
+	/* Assert we have a valid SunAU header */
+	if (hdr[0] != SSTVENC_SUNAU_MAGIC) {
+		/* This is not a valid header */
+		return -EINVAL;
+	}
+
+	/* Extract the header fields we care about */
+	dec->encoding	 = hdr[3];
+	dec->sample_rate = hdr[4];
+	dec->channels	 = hdr[5];
+
+	/* Check these are supported */
+	res = sstvenc_sunau_check(dec->sample_rate, dec->encoding,
+				  dec->channels);
+	if (res < 0) {
+		return res;
+	}
+
+	/* All good, seek to the spot where the audio begins */
+	if (fseek(fh, hdr[1], SEEK_SET) < 0) {
+		/* Seek failed */
+		return -errno;
+	}
+
+	/* All ready */
+	dec->fh = fh;
+	return 0;
+}
+
+int sstvenc_sunau_dec_init(struct sstvenc_sunau* const dec,
+			   const char*		       path) {
+	FILE* fh = fopen(path, "rb");
+	if (fh == NULL) {
+		return -errno;
+	}
+
+	int res = sstvenc_sunau_dec_init_fh(dec, fh);
+	if (res < 0) {
+		/* Try our best, if the close fails, too bad! */
+		fclose(fh);
+	}
+
+	return res;
+}
+
+static int sstvenc_sunau_read_s8(struct sstvenc_sunau* const dec,
+				 size_t* const n_samples, double* samples) {
+	/* Use the end of the output buffer as scratch space. */
+	int8_t* in_buffer = (int8_t*)(&(samples[*n_samples]))
+			    - (sizeof(int8_t) * (*n_samples));
+	size_t in_buffer_sz = *n_samples;
+	size_t read_sz	    = 0;
+
+	/* Read the raw audio data */
+	errno		    = 0;
+	read_sz = fread(in_buffer, sizeof(int8_t), in_buffer_sz, dec->fh);
+	if (read_sz < in_buffer_sz) {
+		/* Short read, check for read errors */
+		if (errno != 0) {
+			return -errno;
+		}
+	}
+
+	/* Read is successful, write sample count, convert samples to
+	 * double-precision float */
+	*n_samples = read_sz;
+	while (read_sz) {
+		*samples = -(double)(*in_buffer) / (double)INT8_MIN;
+		samples++;
+		in_buffer++;
+		read_sz--;
+	}
+
+	return 0;
+}
+
+static int sstvenc_sunau_read_s16(struct sstvenc_sunau* const dec,
+				  size_t* const n_samples, double* samples) {
+	/* Use the end of the output buffer as scratch space. */
+	int16_t* in_buffer = (int16_t*)(&(samples[*n_samples]))
+			     - (sizeof(int16_t) * (*n_samples));
+	size_t in_buffer_sz = *n_samples;
+	size_t read_sz	    = 0;
+
+	/* Read the raw audio data */
+	errno		    = 0;
+	read_sz = fread(in_buffer, sizeof(int16_t), in_buffer_sz, dec->fh);
+	if (read_sz < in_buffer_sz) {
+		/* Short read, check for read errors */
+		if (errno != 0) {
+			return -errno;
+		}
+	}
+
+	/* Read is successful, write sample count, convert samples to
+	 * double-precision float */
+	*n_samples = read_sz;
+	while (read_sz) {
+		int16_t host_endian = be16toh(*in_buffer);
+
+		*samples = -(double)(host_endian) / (double)INT16_MIN;
+		samples++;
+		in_buffer++;
+		read_sz--;
+	}
+
+	return 0;
+}
+
+static int sstvenc_sunau_read_s32(struct sstvenc_sunau* const dec,
+				  size_t* const n_samples, double* samples) {
+	/* Use the end of the output buffer as scratch space. */
+	int32_t* in_buffer = (int32_t*)(&(samples[*n_samples]))
+			     - (sizeof(int32_t) * (*n_samples));
+	size_t in_buffer_sz = *n_samples;
+	size_t read_sz	    = 0;
+
+	/* Read the raw audio data */
+	errno		    = 0;
+	read_sz = fread(in_buffer, sizeof(int32_t), in_buffer_sz, dec->fh);
+	if (read_sz < in_buffer_sz) {
+		/* Short read, check for read errors */
+		if (errno != 0) {
+			return -errno;
+		}
+	}
+
+	/* Read is successful, write sample count, convert samples to
+	 * double-precision float */
+	*n_samples = read_sz;
+	while (read_sz) {
+		int32_t host_endian = be32toh(*in_buffer);
+
+		*samples = -(double)(host_endian) / (double)INT32_MIN;
+		samples++;
+		in_buffer++;
+		read_sz--;
+	}
+
+	return 0;
+}
+
+static int sstvenc_sunau_read_f32(struct sstvenc_sunau* const dec,
+				  size_t* const n_samples, double* samples) {
+	/* Use the end of the output buffer as scratch space. */
+	uint32_t* in_buffer = (uint32_t*)(&(samples[*n_samples]))
+			      - (sizeof(uint32_t) * (*n_samples));
+	size_t in_buffer_sz = *n_samples;
+	size_t read_sz	    = 0;
+
+	/* Read the raw audio data */
+	errno		    = 0;
+	read_sz = fread(in_buffer, sizeof(float), in_buffer_sz, dec->fh);
+	if (read_sz < in_buffer_sz) {
+		/* Short read, check for read errors */
+		if (errno != 0) {
+			return -errno;
+		}
+	}
+
+	/* Read is successful, write sample count, convert samples to native
+	 * endianness */
+	*n_samples = read_sz;
+	while (read_sz) {
+		*samples = fbe32toh(*in_buffer);
+		samples++;
+		in_buffer++;
+		read_sz--;
+	}
+
+	return 0;
+}
+
+static int sstvenc_sunau_read_f64(struct sstvenc_sunau* const dec,
+				  size_t* const n_samples, double* samples) {
+	/* Use the output buffer as scratch space */
+	uint64_t* in_buffer    = (uint64_t*)samples;
+	size_t	  in_buffer_sz = *n_samples;
+	size_t	  read_sz      = 0;
+
+	/* Read the raw audio data */
+	errno		       = 0;
+	read_sz = fread(in_buffer, sizeof(double), in_buffer_sz, dec->fh);
+	if (read_sz < in_buffer_sz) {
+		/* Short read, check for read errors */
+		if (errno != 0) {
+			return -errno;
+		}
+	}
+
+	/* Read is successful, write sample count, convert samples to native
+	 * endianness */
+	*n_samples = read_sz;
+	while (read_sz) {
+		*samples = dbe64toh(*in_buffer);
+		samples++;
+		in_buffer++;
+		read_sz--;
+	}
+
+	return 0;
+}
+
+int sstvenc_sunau_dec_read(struct sstvenc_sunau* const dec,
+			   size_t* const n_samples, double* samples) {
+	switch (dec->encoding) {
+	case SSTVENC_SUNAU_FMT_S8:
+		return sstvenc_sunau_read_s8(dec, n_samples, samples);
+	case SSTVENC_SUNAU_FMT_S16:
+		return sstvenc_sunau_read_s16(dec, n_samples, samples);
+	case SSTVENC_SUNAU_FMT_S32:
+		return sstvenc_sunau_read_s32(dec, n_samples, samples);
+	case SSTVENC_SUNAU_FMT_F32:
+		return sstvenc_sunau_read_f32(dec, n_samples, samples);
+	case SSTVENC_SUNAU_FMT_F64:
+		return sstvenc_sunau_read_f64(dec, n_samples, samples);
+	default:
+		assert(0);
+		return -EINVAL;
+	}
+}
+
+int sstvenc_sunau_dec_close(struct sstvenc_sunau* const dec) {
+	int res = fclose(dec->fh);
+	dec->fh = NULL;
+
+	if (res < 0) {
 		return -errno;
 	} else {
 		return 0;

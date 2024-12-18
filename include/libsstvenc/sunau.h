@@ -67,11 +67,11 @@ struct sstvenc_sunau {
  * @retval	0		Settings are valid
  * @retval	-EINVAL		Invalid sample rate, encoding or channel count
  */
-int sstvenc_sunau_enc_check(uint32_t sample_rate, uint8_t encoding,
-			    uint8_t channels);
+int sstvenc_sunau_check(uint32_t sample_rate, uint8_t encoding,
+			uint8_t channels);
 
 /*!
- * Initialise an audio context with an opened file.
+ * Initialise an audio encoder context with an opened file.
  *
  * @param[out]		enc		SunAU encoder context
  * @param[inout]	fh		Existing file handle, open for writing
@@ -133,6 +133,59 @@ int sstvenc_sunau_enc_write(struct sstvenc_sunau* const enc, size_t n_samples,
  * `fclose()`.
  */
 int sstvenc_sunau_enc_close(struct sstvenc_sunau* const enc);
+
+/*!
+ * Initialise an audio decoder context with an opened file.
+ *
+ * @param[out]		dec		SunAU decoder context
+ * @param[inout]	fh		Existing file handle, open for writing
+ * 					in binary mode, positioned at the
+ * 					start of the file.
+ *
+ * @retval		0		Success
+ * @retval		-EINVAL		Invalid sample rate, encoding or
+ * 					channel count
+ */
+int sstvenc_sunau_dec_init_fh(struct sstvenc_sunau* const dec, FILE* fh);
+
+/*!
+ * Open a file for reading.
+ *
+ * @param[out]	dec		SunAU decoder context
+ * @param[in]	path		Path to the file to open for reading.
+ *
+ * @retval	0		Success
+ * @retval	-EINVAL		Invalid sample rate, encoding or channel count
+ * @retval	<0		`-errno` result from `fopen()` call.
+ */
+int sstvenc_sunau_dec_init(struct sstvenc_sunau* const dec, const char* path);
+
+/*!
+ * Read some audio samples from the file.  n_samples is assumed to be a
+ * multiple of the channel count.
+ *
+ * @param[inout]	enc		SunAU decoder context
+ * @param[inout]	n_samples	Number of samples in the buffer, will
+ * be updated with the number of samples *actually* read.
+ * @param[out]		samples		The samples to be read
+ *
+ * @retval		0		Success
+ * @retval		-EINVAL		Invalid number of samples (not a
+ * 					multiple of `dec->channels`)
+ * @retval		<0		Read error `errno` from `fread()`
+ */
+int sstvenc_sunau_dec_read(struct sstvenc_sunau* const enc,
+			   size_t* const n_samples, double* samples);
+
+/*!
+ * Close the file opened for reading.
+ *
+ * @param[inout]	dec		SunAU decoder context (to be closed)
+ *
+ * @retval		0		Success
+ * @retval		<0		Write error `errno` from `fclose()`.
+ */
+int sstvenc_sunau_dec_close(struct sstvenc_sunau* const dec);
 
 /*! @} */
 #endif
