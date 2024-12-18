@@ -8,6 +8,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <assert.h>
 #include <libsstvenc/sequence.h>
 
 void sstvenc_sequencer_step_set_timescale(
@@ -118,19 +119,39 @@ void sstvenc_sequencer_step_image(struct sstvenc_sequencer_step* const step,
 	step->args.image.fsk_id	     = fsk_id;
 }
 
+void sstvenc_sequencer_step_audio(
+    struct sstvenc_sequencer_step* const  step,
+    struct sstvenc_sequencer_ausrc* const ausrc) {
+	step->type	     = SSTVENC_SEQ_STEP_TYPE_EMIT_AUDIO;
+	step->args.audio.src = ausrc;
+}
+
 void sstvenc_sequencer_step_end(struct sstvenc_sequencer_step* const step) {
 	step->type = SSTVENC_SEQ_STEP_TYPE_END;
+}
+
+static void
+sstvenc_sequencer_reset_internal(struct sstvenc_sequencer* const seq) {
+	seq->step			      = 0;
+	seq->state			      = SSTVENC_SEQ_STATE_INIT;
+	seq->regs[SSTVENC_SEQ_REG_AMPLITUDE]  = 1.0;
+	seq->regs[SSTVENC_SEQ_REG_FREQUENCY]  = 800.0;
+	seq->regs[SSTVENC_SEQ_REG_PHASE]      = 0.0;
+	seq->regs[SSTVENC_SEQ_REG_PULSE_RISE] = 0.002;
+	seq->regs[SSTVENC_SEQ_REG_PULSE_FALL] = 0.002;
+	seq->regs[SSTVENC_SEQ_REG_DIT_PERIOD] = 0.05;
+	seq->time_unit			      = SSTVENC_TS_UNIT_SECONDS;
 }
 
 void sstvenc_sequencer_init(struct sstvenc_sequencer* const	 seq,
 			    const struct sstvenc_sequencer_step* steps,
 			    sstvenc_sequencer_event_cb*		 event_cb,
 			    const void* event_cb_ctx, uint32_t sample_rate) {
-	seq->err  	  = 0;
+	seq->err	  = 0;
 	seq->steps	  = steps;
 	seq->event_cb	  = event_cb;
 	seq->event_cb_ctx = event_cb_ctx;
-	sstvenc_sequencer_reset(seq);
+	sstvenc_sequencer_reset_internal(seq);
 }
 
 /*!
@@ -331,6 +352,53 @@ static void sstvenc_sequencer_begin_image(
 	sstvenc_sequencer_next_state(seq, SSTVENC_SEQ_STATE_GEN_IMAGE, true);
 }
 
+static void sstvenc_sequencer_begin_audio(
+    struct sstvenc_sequencer* const	       seq,
+    const struct sstvenc_sequencer_step* const step) {
+	sstvenc_sequencer_next_state(seq, SSTVENC_SEQ_STATE_BEGIN_AUDIO,
+				     true);
+
+	assert(step->args.audio.src->iface != NULL);
+
+	if (step->args.audio.src->iface->init) {
+		int res
+		    = step->args.audio.src->iface->init(step->args.audio.src);
+		if (res < 0) {
+			sstvenc_sequencer_abort(seq, -res);
+			return;
+		}
+	}
+
+	sstvenc_sequencer_next_state(seq, SSTVENC_SEQ_STATE_GEN_AUDIO, true);
+}
+
+/*!
+ * Read the next audio sample from the audio source.
+ */
+static void
+sstvenc_sequencer_next_ausrc_sample(struct sstvenc_sequencer* const seq) {
+	const struct sstvenc_sequencer_step* step = &(seq->steps[seq->step]);
+	int				     res;
+	assert(step->args.audio.src->iface != NULL);
+	assert(step->args.audio.src->iface->next != NULL);
+
+	res = step->args.audio.src->iface->next(step->args.audio.src,
+						&(seq->output));
+	if (res < 0) {
+		/* Read failed */
+		sstvenc_sequencer_abort(seq, -res);
+	} else if (res == 0) {
+		/* We are finished reading, close the audio source */
+		if (step->args.audio.src->iface->close) {
+			res = step->args.audio.src->iface->close(
+			    step->args.audio.src);
+			if (res < 0) {
+				sstvenc_sequencer_abort(seq, -res);
+			}
+		}
+	}
+}
+
 static void sstvenc_sequencer_end(struct sstvenc_sequencer* const seq) {
 	sstvenc_sequencer_next_state(seq, SSTVENC_SEQ_STATE_DONE, true);
 }
@@ -365,6 +433,9 @@ static void sstvenc_sequencer_exec_step(struct sstvenc_sequencer* const seq) {
 	case SSTVENC_SEQ_STEP_TYPE_EMIT_IMAGE:
 		sstvenc_sequencer_begin_image(seq, step);
 		break;
+	case SSTVENC_SEQ_STEP_TYPE_EMIT_AUDIO:
+		sstvenc_sequencer_begin_audio(seq, step);
+		break;
 	case SSTVENC_SEQ_STEP_TYPE_END:
 	default:
 		sstvenc_sequencer_end(seq);
@@ -372,16 +443,78 @@ static void sstvenc_sequencer_exec_step(struct sstvenc_sequencer* const seq) {
 	}
 }
 
+static int
+sstvenc_sequencer_reset_ausrc(struct sstvenc_sequencer_ausrc* ausrc) {
+	int reset_res = 0;
+	int close_res = 0;
+
+	assert(ausrc->iface != NULL);
+	if (ausrc->iface->reset) {
+		reset_res = ausrc->iface->reset(ausrc);
+		if (reset_res == 0) {
+			return 0;
+		}
+	}
+
+	/* Still here?  Then resetting failed or isn't implemented */
+
+	if (ausrc->iface->close) {
+		close_res = ausrc->iface->close(ausrc);
+		if (close_res == 0) {
+			/* Close worked, leave it at that. */
+			return 0;
+		}
+	}
+
+	/* We could not reset or close */
+	if (reset_res) {
+		return reset_res;
+	} else {
+		return close_res;
+	}
+}
+
 void sstvenc_sequencer_reset(struct sstvenc_sequencer* const seq) {
-	seq->step			      = 0;
-	seq->state			      = SSTVENC_SEQ_STATE_INIT;
-	seq->regs[SSTVENC_SEQ_REG_AMPLITUDE]  = 1.0;
-	seq->regs[SSTVENC_SEQ_REG_FREQUENCY]  = 800.0;
-	seq->regs[SSTVENC_SEQ_REG_PHASE]      = 0.0;
-	seq->regs[SSTVENC_SEQ_REG_PULSE_RISE] = 0.002;
-	seq->regs[SSTVENC_SEQ_REG_PULSE_FALL] = 0.002;
-	seq->regs[SSTVENC_SEQ_REG_DIT_PERIOD] = 0.05;
-	seq->time_unit			      = SSTVENC_TS_UNIT_SECONDS;
+	/* Assume everything prior to seq->step has been manipulated */
+	uint16_t failed_idx = UINT16_MAX;
+	int	 failed_err = 0;
+	int	 reset_res  = 0;
+
+	for (uint16_t idx = 0; idx < seq->step; idx++) {
+		const struct sstvenc_sequencer_step* step
+		    = &(seq->steps[idx]);
+		switch (step->type) {
+		case SSTVENC_SEQ_STEP_TYPE_EMIT_AUDIO:
+			reset_res = sstvenc_sequencer_reset_ausrc(
+			    step->args.audio.src);
+			if (reset_res < 0) {
+				/*
+				 * Reset failed!  Make a note of where
+				 * if we haven't already done so.
+				 */
+				if (failed_idx == UINT16_MAX) {
+					failed_idx = idx;
+					failed_err = -reset_res;
+				}
+			}
+			break;
+		default:
+			/* Nothing to do */
+			break;
+		}
+	}
+
+	if (failed_idx != UINT16_MAX) {
+		/*
+		 * We were unable to reset at least one step.  Report the
+		 * first one we saw here.
+		 */
+		seq->step = failed_idx;
+		sstvenc_sequencer_abort(seq, failed_err);
+	} else {
+		/* All clear, reset the sequencer itself */
+		sstvenc_sequencer_reset_internal(seq);
+	}
 }
 
 void sstvenc_sequencer_advance(struct sstvenc_sequencer* const seq) {
@@ -407,6 +540,7 @@ retry:
 	case SSTVENC_SEQ_STATE_END_TONE:
 	case SSTVENC_SEQ_STATE_END_CW:
 	case SSTVENC_SEQ_STATE_END_IMAGE:
+	case SSTVENC_SEQ_STATE_END_AUDIO:
 		sstvenc_sequencer_exec_step(seq);
 		goto retry;
 		break;
@@ -457,6 +591,10 @@ retry:
 			    seq, SSTVENC_SEQ_STATE_END_IMAGE, true);
 			goto retry;
 		}
+		break;
+	case SSTVENC_SEQ_STATE_BEGIN_AUDIO:
+	case SSTVENC_SEQ_STATE_GEN_AUDIO:
+		sstvenc_sequencer_next_ausrc_sample(seq);
 		break;
 	case SSTVENC_SEQ_STATE_DONE:
 	default:

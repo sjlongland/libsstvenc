@@ -40,6 +40,7 @@
  * - @ref SSTVENC_SEQ_STATE_BEGIN_TONE
  * - @ref SSTVENC_SEQ_STATE_BEGIN_CW
  * - @ref SSTVENC_SEQ_STATE_BEGIN_IMAGE
+ * - @ref SSTVENC_SEQ_STATE_BEGIN_AUDIO
  * - @ref SSTVENC_SEQ_STATE_DONE
  */
 #define SSTVENC_SEQ_STATE_INIT		    (0x00)
@@ -74,6 +75,7 @@
  * - @ref SSTVENC_SEQ_STATE_BEGIN_TONE
  * - @ref SSTVENC_SEQ_STATE_BEGIN_CW
  * - @ref SSTVENC_SEQ_STATE_BEGIN_IMAGE
+ * - @ref SSTVENC_SEQ_STATE_BEGIN_AUDIO
  * - @ref SSTVENC_SEQ_STATE_DONE
  */
 #define SSTVENC_SEQ_STATE_END_SILENCE	    (0x1f)
@@ -110,6 +112,7 @@
  * - @ref SSTVENC_SEQ_STATE_BEGIN_TONE (again)
  * - @ref SSTVENC_SEQ_STATE_BEGIN_CW
  * - @ref SSTVENC_SEQ_STATE_BEGIN_IMAGE
+ * - @ref SSTVENC_SEQ_STATE_BEGIN_AUDIO
  * - @ref SSTVENC_SEQ_STATE_DONE
  */
 #define SSTVENC_SEQ_STATE_END_TONE	    (0x2f)
@@ -135,6 +138,7 @@
  * - @ref SSTVENC_SEQ_STATE_BEGIN_TONE
  * - @ref SSTVENC_SEQ_STATE_BEGIN_CW (again)
  * - @ref SSTVENC_SEQ_STATE_BEGIN_IMAGE
+ * - @ref SSTVENC_SEQ_STATE_BEGIN_AUDIO
  * - @ref SSTVENC_SEQ_STATE_DONE
  */
 #define SSTVENC_SEQ_STATE_END_CW	    (0x3f)
@@ -160,12 +164,42 @@
  * - @ref SSTVENC_SEQ_STATE_BEGIN_TONE
  * - @ref SSTVENC_SEQ_STATE_BEGIN_CW
  * - @ref SSTVENC_SEQ_STATE_BEGIN_IMAGE (again)
+ * - @ref SSTVENC_SEQ_STATE_BEGIN_AUDIO
  * - @ref SSTVENC_SEQ_STATE_DONE
  */
 #define SSTVENC_SEQ_STATE_END_IMAGE	    (0x4f)
 
 /*!
+ * Sequencer is about to begin emitting an audio recording.  Follow-on state
+ * is @ref SSTVENC_SEQ_STATE_GEN_AUDIO unless initialisation fails, at which
+ * point the sequencer will jump to state @ref SSTVENC_SEQ_STATE_DONE and
+ * set sstvenc_sequencer#err.
+ */
+#define SSTVENC_SEQ_STATE_BEGIN_AUDIO	    (0xe0)
+
+/*!
+ * Sequencer is emitting the audio recording.  We remain in this state until
+ * we run out of samples from the decoder, at which point we transition
+ * to the @ref SSTVENC_SEQ_STATE_END_AUDIO state.
+ */
+#define SSTVENC_SEQ_STATE_GEN_AUDIO	    (0xe7)
+
+/*!
+ * Audio transmission has completed.  Follow-on states:
+ *
+ * - @ref SSTVENC_SEQ_STATE_BEGIN_SILENCE
+ * - @ref SSTVENC_SEQ_STATE_BEGIN_TONE
+ * - @ref SSTVENC_SEQ_STATE_BEGIN_CW
+ * - @ref SSTVENC_SEQ_STATE_BEGIN_IMAGE
+ * - @ref SSTVENC_SEQ_STATE_BEGIN_AUDIO (again)
+ * - @ref SSTVENC_SEQ_STATE_DONE
+ */
+#define SSTVENC_SEQ_STATE_END_AUDIO	    (0xef)
+
+/*!
  * The sequence is complete.  No more samples are provided.
+ * If the sequence finished with an error, the error code is given by
+ * sstvenc_sequencer#err.
  */
 #define SSTVENC_SEQ_STATE_DONE		    (0xff)
 
@@ -251,6 +285,11 @@
 #define SSTVENC_SEQ_STEP_TYPE_EMIT_IMAGE    (0x60)
 
 /*!
+ * Emit audio recording
+ */
+#define SSTVENC_SEQ_STEP_TYPE_EMIT_AUDIO    (0x70)
+
+/*!
  * @}
  */
 
@@ -317,6 +356,7 @@
 
 struct sstvenc_sequencer;
 struct sstvenc_sequencer_step;
+struct sstvenc_sequencer_ausrc;
 
 /*!
  * Callback routine for sequencer events.  This is called at the start of each
@@ -481,12 +521,110 @@ struct sstvenc_sequencer_step {
 			/*! The FSK ID */
 			const char*		   fsk_id;
 		} image;
+
+		/*!
+		 * Send an audio recording.  sstvenc_sequencer_step#type is
+		 * set to
+		 * @ref SSTVENC_SEQ_STEP_TYPE_EMIT_AUDIO.
+		 */
+		struct sstvenc_sequence_step_audio {
+			/*! The audio source emitting the samples */
+			struct sstvenc_sequencer_ausrc* src;
+		} audio;
+
 	} args;
 
 	/*!
 	 * The type of sequencer step.  See @ref sequence_step_type
 	 */
 	uint8_t type;
+};
+
+/*!
+ * Sequencer audio source interface.  This defines the callback functions
+ * necessary for reading audio from a particular source type or to reset the
+ * source's state.
+ */
+struct sstvenc_sequencer_ausrc_interface {
+	/*!
+	 * Initialise the audio source ready for reading samples.  The
+	 * function should assume the existing state of the context is
+	 * meaningless.
+	 *
+	 * @param[inout]	ausrc	Audio source context
+	 *
+	 * @retval		0	Success
+	 * @retval		<0	An error from `errno.h`, negated.
+	 */
+	int (*init)(struct sstvenc_sequencer_ausrc* const ausrc);
+
+	/*!
+	 * Reset the audio source back to the initial state.  The function may
+	 * assume the structure has been initialised already.  Resources can
+	 * be released if this would be easier than resetting their states.
+	 *
+	 * In the event of an error, it is the responsibility of the audio
+	 * interface to clean up its state and release resources.
+	 *
+	 * @param[inout]	ausrc	Audio source context
+	 *
+	 * @retval		0	Success
+	 * @retval		<0	An error from `errno.h`, negated.
+	 */
+	int (*reset)(struct sstvenc_sequencer_ausrc* const ausrc);
+
+	/*!
+	 * Read and return the next audio sample.  The function may assume the
+	 * context has been initialised already (that is,
+	 * sstvenc_sequencer_ausrc_interface#init has been called).
+	 *
+	 * When we reach the end, the audio source interface is responsible
+	 * for freeing/closing resources acquired in the initialisation stage.
+	 * Calling this function again after this point should be a no-op
+	 * until sstvenc_sequencer_ausrc_interface#reset is called.
+	 *
+	 * In the event of an error, it is the responsibility of the audio
+	 * interface to clean up its state and release resources.
+	 *
+	 * @param[inout]	ausrc	Audio source context
+	 * @param[out]		sample	The audio sample read
+	 *
+	 * @retval		1	Success, a sample has been written.
+	 * @retval		0	Success, there are no more samples to
+	 * 				read.
+	 * @retval		<0	An error from `errno.h`, negated.
+	 */
+	int (*next)(struct sstvenc_sequencer_ausrc* const ausrc,
+		    double* const			  sample);
+
+	/*!
+	 * Close the audio source.  This should release any resources acquired
+	 * during initialisation.
+	 *
+	 * @param[inout]	ausrc	Audio source context
+	 *
+	 * @retval		0	Success
+	 * @retval		<0	An error from `errno.h`, negated.
+	 */
+	int (*close)(struct sstvenc_sequencer_ausrc* const ausrc);
+};
+
+/*!
+ * Sequencer audio source context.  This binds an audio source interface to
+ * arbitrary context information needed to generate the audio samples.
+ */
+struct sstvenc_sequencer_ausrc {
+	/*!
+	 * Audio source interface.  This defines the methods for this instance
+	 * of audio source.
+	 */
+	const struct sstvenc_sequencer_ausrc_interface* iface;
+
+	/*!
+	 * Context pointer.  This may be used for any means the audio
+	 * interface wishes.
+	 */
+	void*						context;
 };
 
 /*!
@@ -628,11 +766,21 @@ void sstvenc_sequencer_step_image(struct sstvenc_sequencer_step* const step,
 				  const char*	 fsk_id);
 
 /*!
+ * Configure a step that emits an audio recording.
+ *
+ * @param[out]		step		Sequencer step
+ * @param[in]		ausrc		The audio source being emitted.
+ */
+void sstvenc_sequencer_step_audio(
+    struct sstvenc_sequencer_step* const  step,
+    struct sstvenc_sequencer_ausrc* const ausrc);
+
+/*!
  * Configure the final step in the sequence.
  *
  * @param[out]		step		Sequencer step
  */
-void sstvenc_sequencer_step_end(struct sstvenc_sequencer_step* const step);
+void   sstvenc_sequencer_step_end(struct sstvenc_sequencer_step* const step);
 
 /*!
  * Initialise the sequencer with the given sequencer steps.
@@ -646,15 +794,15 @@ void sstvenc_sequencer_step_end(struct sstvenc_sequencer_step* const step);
  * @param[in]		event_cb_ctx	Optional event callback context.
  * @param[in]		sample_rate	Sample rate in hertz.
  */
-void sstvenc_sequencer_init(struct sstvenc_sequencer* const	 seq,
-			    const struct sstvenc_sequencer_step* steps,
-			    sstvenc_sequencer_event_cb*		 event_cb,
-			    const void* event_cb_ctx, uint32_t sample_rate);
+void   sstvenc_sequencer_init(struct sstvenc_sequencer* const	   seq,
+			      const struct sstvenc_sequencer_step* steps,
+			      sstvenc_sequencer_event_cb*	   event_cb,
+			      const void* event_cb_ctx, uint32_t sample_rate);
 
 /*!
  * Reset the state machine back to the initial state.
  */
-void sstvenc_sequencer_reset(struct sstvenc_sequencer* const seq);
+void   sstvenc_sequencer_reset(struct sstvenc_sequencer* const seq);
 
 /*!
  * Advance the state of the state machine when generating infinite tones or
@@ -664,7 +812,7 @@ void sstvenc_sequencer_reset(struct sstvenc_sequencer* const seq);
  * - @ref SSTVENC_SEQ_STATE_GEN_INF_SILENCE
  * - @ref SSTVENC_SEQ_STATE_GEN_INF_TONE
  */
-void sstvenc_sequencer_advance(struct sstvenc_sequencer* const seq);
+void   sstvenc_sequencer_advance(struct sstvenc_sequencer* const seq);
 
 /*!
  * Compute the next sample to be emitted by the sequencer.
@@ -673,7 +821,7 @@ void sstvenc_sequencer_advance(struct sstvenc_sequencer* const seq);
  * This should be called until sstvenc_sequencer#state reaches
  * the value @ref SSTVENC_SEQ_STATE_DONE.
  */
-void sstvenc_sequencer_compute(struct sstvenc_sequencer* const seq);
+void   sstvenc_sequencer_compute(struct sstvenc_sequencer* const seq);
 
 /*!
  * Fill the given buffer with audio samples from the sequencer.  Stop if
