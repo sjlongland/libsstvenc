@@ -222,7 +222,7 @@ int main(int argc, char* argv[]) {
 
 	const struct sstvenc_mode* mode = sstvenc_get_mode_by_name(opt_mode);
 	struct sstvenc_mod	   mod;
-	struct sstvenc_sunau_enc   au;
+	struct sstvenc_sunau	   au;
 
 	if (!mode) {
 		fprintf(stderr, "Unknown mode %s\n", opt_mode);

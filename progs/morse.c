@@ -213,8 +213,8 @@ int main(int argc, char* argv[]) {
 		opt_slope_period = 0.2 * opt_dit_period;
 	}
 
-	struct sstvenc_cw_mod	 cw;
-	struct sstvenc_sunau_enc au;
+	struct sstvenc_cw_mod cw;
+	struct sstvenc_sunau  au;
 
 	sstvenc_cw_init(&cw, opt_input_txt, 1.0, opt_freq, opt_dit_period,
 			opt_slope_period, opt_rate,
